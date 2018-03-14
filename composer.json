@@ -1,0 +1,27 @@
+{
+  "name": "arajcany/ToolBox",
+  "description": "A Tool Box for CakePHP Projects",
+  "license": "MIT",
+  "type": "package",
+  "keywords": [
+    "Tools"
+  ],
+  "authors": [
+    {
+      "name": "Andrew Rajcany",
+      "email": "a.rajcany@mac.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.0.0",
+    "cakephp/cakephp": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "4.0.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "arajcany\\ToolBox\\": "src"
+    }
+  }
+}
