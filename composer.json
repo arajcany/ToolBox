@@ -1,6 +1,6 @@
 {
   "name": "arajcany/ToolBox",
-  "description": "A Tool Box for CakePHP Projects",
+  "description": "A collection of Classes for CakePHP Projects",
   "license": "MIT",
   "type": "package",
   "keywords": [
