@@ -1,10 +1,10 @@
 <?php
 
-namespace arajcany\ToolBox;
+namespace arajcany\ToolBox\Utility;
 
-use Cake\Filesystem\File;
 use Cake\Filesystem\Folder;
 use ZipArchive;
+
 
 /**
  * Class ZipMaker
@@ -35,7 +35,7 @@ class ZipMaker
      */
     public function makeFileList($basePath = null, $ignoreList = [])
     {
-        $basePath = Formatter::makeEndsWith($basePath, "\\");
+        $basePath = TextFormatter::makeEndsWith($basePath, "\\");
 
         $folderObj = new Folder($basePath);
         $files = $folderObj->findRecursive();
@@ -50,8 +50,8 @@ class ZipMaker
                 $ignored = $basePath . $ignored;
 
                 //based on directory
-                if (Formatter::endsWith($ignored, "\\") || Formatter::endsWith($ignored, "/")) {
-                    if (Formatter::startsWith($file, $ignored)) {
+                if (TextFormatter::endsWith($ignored, "\\") || TextFormatter::endsWith($ignored, "/")) {
+                    if (TextFormatter::startsWith($file, $ignored)) {
                         $rejectedFlag = true;
                     }
                 }
