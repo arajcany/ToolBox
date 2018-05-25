@@ -11,6 +11,11 @@ use ZipArchive;
  *
  * @package arajcany\ToolBox
  */
+/**
+ * Class ZipMaker
+ *
+ * @package arajcany\ToolBox
+ */
 class ZipMaker
 {
     /**
@@ -90,17 +95,24 @@ class ZipMaker
         $totalCount = count($fileList);
         $counter = 1;
         foreach ($fileList as $file) {
-            $internalFile = $file;
+            if (is_string($file)) {
+                $internalFile = $file;
 
-            if (strlen($basePathRemove) > 0) {
-                $internalFile = str_replace($basePathRemove, "", $internalFile);
+                if (strlen($basePathRemove) > 0) {
+                    $internalFile = str_replace($basePathRemove, "", $internalFile);
+                }
+
+                if (strlen($basePathAdd) > 0) {
+                    $internalFile = $basePathAdd . $internalFile;
+                }
+
+                $zip->addFile($file, $internalFile);
+            } elseif (is_array($file)) {
+                if (isset($file['external']) && isset($file['internal'])) {
+                    $zip->addFile($file['external'], $file['internal']);
+                }
             }
 
-            if (strlen($basePathAdd) > 0) {
-                $internalFile = $basePathAdd . "\\" . $internalFile;
-            }
-
-            $zip->addFile($file, $internalFile);
             $counter++;
         }
 

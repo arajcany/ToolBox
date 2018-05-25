@@ -49,7 +49,6 @@ class TimeMaker
      * $unknown examples
      * String - "first day of january 2006"
      * Array - ['year' => '2018','month' => '7','day' => '25','hour' => '15','minute' => '6','second' => '30']
-     *
      */
     private static function makeFromUnknown($unknown, $inputTimezone = 'utc', $outputTimezone = 'utc', $mode = false, $failType = null)
     {
