@@ -36,10 +36,12 @@ class ZipMaker
      *
      * @param null $basePath
      * @param array $ignoreList
+     * @param $removeBasePath
      * @return array
      */
-    public function makeFileList($basePath = null, $ignoreList = [])
+    public function makeFileList($basePath = null, $ignoreList = [], $removeBasePath = false)
     {
+        $basePathClone = $basePath;
         $basePath = TextFormatter::makeEndsWith($basePath, "\\");
 
         $folderObj = new Folder($basePath);
@@ -65,6 +67,11 @@ class ZipMaker
                 if ($file === $ignored) {
                     $rejectedFlag = true;
                 }
+            }
+
+            if ($removeBasePath) {
+                $file = str_replace($basePathClone, "", $file);
+                $file = ltrim($file, "\\");
             }
 
             if ($rejectedFlag) {

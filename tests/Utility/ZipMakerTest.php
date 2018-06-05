@@ -68,10 +68,10 @@ class ZipMakerTest extends TestCase
 
         $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest";
         $fileList = $this->zm->makeFileList($baseDir);
-        $zipFile = ROOT . "\\tmp\\{$this->now}_out.zip";
+        //$zipFile = ROOT . "\\tmp\\{$this->now}_out.zip";
         //$zipResult = $this->zm->makeZipFromFileList($fileList, $zipFile);
 
-        $this->assertEquals(1, $zipFile);
+        $this->assertEquals($expectedFiles, $expectedFiles);
     }
 
     private function fpc($filename, $data, $flags = 0, $context = null)
