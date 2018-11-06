@@ -11,6 +11,7 @@ use ZipArchive;
  *
  * @package arajcany\ToolBox
  */
+
 /**
  * Class ZipMaker
  *
@@ -36,16 +37,30 @@ class ZipMaker
      *
      * @param null $basePath
      * @param array $ignoreList
-     * @param $removeBasePath
+     * @param bool $removeBasePath
+     * @param null $extWhitelist
+     * @param null $extBlacklist
      * @return array
      */
-    public function makeFileList($basePath = null, $ignoreList = [], $removeBasePath = false)
-    {
+    public function makeFileList(
+        $basePath = null,
+        $ignoreList = [],
+        $removeBasePath = false,
+        $extWhitelist = null,
+        $extBlacklist = null
+    ) {
         $basePathClone = $basePath;
         $basePath = TextFormatter::makeEndsWith($basePath, "\\");
 
         $folderObj = new Folder($basePath);
-        $files = $folderObj->findRecursive();
+
+        if ($extWhitelist == null && $extBlacklist == null) {
+            $files = $folderObj->findRecursive();
+        } elseif (is_array($extWhitelist)) {
+            $files = $folderObj->findRecursive('.*\.(' . implode("|", $extWhitelist) . ')');
+        } elseif (is_array($extBlacklist)) {
+            $files = $folderObj->findRecursive('');
+        }
 
         $accepted = [];
         $rejected = [];

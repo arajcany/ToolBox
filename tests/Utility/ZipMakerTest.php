@@ -24,54 +24,98 @@ class ZipMakerTest extends TestCase
 
         $this->now = date("Y-m-d H:i:s");
         $this->zm = new ZipMaker();
-        $this->tstHomeDir = __DIR__ . "\\..\\";
+        $this->tstHomeDir = str_replace("\\Utility", '', __DIR__) . DS;
         $this->tstTmpDir = __DIR__ . "\\..\\..\\tmp\\";
     }
 
     /**
-     * Test that Sting input matches Array input
+     * Test that counts match
      */
-    public function testMakeFileList()
+    public function testCountFileList()
     {
+
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+
         $expectedFiles = [
             "config",
             "Sample.txt",
+            "1 One\\empty.pdf",
             "1 One\\empty.txt",
+            "2 Two\\empty.jpg",
             "2 Two\\empty.txt",
+            "3 Three\\empty.indd",
             "3 Three\\empty.txt",
+            "Sample\\empty.bat",
             "Sample\\empty.txt",
         ];
 
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest";
         $fileList = $this->zm->makeFileList($baseDir);
-        $fileListString = implode("\r\n", $fileList);
-        foreach ($expectedFiles as $expectedFile) {
-            $this->assertContains($expectedFile, $fileListString);
-        }
-
         $this->assertEquals(count($expectedFiles), count($fileList));
     }
 
     /**
-     * Test that Sting input matches Array input
+     * Test that arrays match
      */
-    public function testMakeZipFromFileList()
+    public function testCompareFileList()
     {
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+
         $expectedFiles = [
-            "config",
-            "Sample.txt",
-            "1 One\\empty.txt",
-            "2 Two\\empty.txt",
-            "3 Three\\empty.txt",
-            "Sample\\empty.txt",
+            $baseDir . "config",
+            $baseDir . "Sample.txt",
+            $baseDir . "1 One\\empty.pdf",
+            $baseDir . "1 One\\empty.txt",
+            $baseDir . "2 Two\\empty.jpg",
+            $baseDir . "2 Two\\empty.txt",
+            $baseDir . "3 Three\\empty.indd",
+            $baseDir . "3 Three\\empty.txt",
+            $baseDir . "Sample\\empty.bat",
+            $baseDir . "Sample\\empty.txt",
         ];
 
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest";
         $fileList = $this->zm->makeFileList($baseDir);
-        //$zipFile = ROOT . "\\tmp\\{$this->now}_out.zip";
-        //$zipResult = $this->zm->makeZipFromFileList($fileList, $zipFile);
+        $this->assertEquals($expectedFiles, $fileList);
+    }
 
-        $this->assertEquals($expectedFiles, $expectedFiles);
+    /**
+     * Test that whitelist
+     */
+    public function testWhitelistFileList()
+    {
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+
+        $expectedFiles = [
+            $baseDir . "Sample.txt",
+            $baseDir . "1 One\\empty.txt",
+            $baseDir . "2 Two\\empty.txt",
+            $baseDir . "3 Three\\empty.txt",
+            $baseDir . "Sample\\empty.txt",
+        ];
+        $whitelist = ['txt'];
+        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist);
+        $this->assertEquals($expectedFiles, $fileList);
+
+
+        $expectedFiles = [
+            $baseDir . "Sample.txt",
+            $baseDir . "1 One\\empty.pdf",
+            $baseDir . "1 One\\empty.txt",
+            $baseDir . "2 Two\\empty.txt",
+            $baseDir . "3 Three\\empty.txt",
+            $baseDir . "Sample\\empty.txt",
+        ];
+        $whitelist = ['txt', 'pdf'];
+        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist);
+        $this->assertEquals($expectedFiles, $fileList);
+
+
+        $expectedFiles = [
+            $baseDir . "1 One\\empty.pdf",
+            $baseDir . "3 Three\\empty.indd",
+        ];
+        $whitelist = ['indd', 'pdf'];
+        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist);
+        $this->assertEquals($expectedFiles, $fileList);
     }
 
     private function fpc($filename, $data, $flags = 0, $context = null)

@@ -14,7 +14,8 @@
   ],
   "require": {
     "php": ">=7.0.0",
-    "cakephp/cakephp": "*"
+    "cakephp/cakephp": "*",
+    "ext-zip": "*"
   },
   "require-dev": {
     "phpunit/phpunit": "*"
