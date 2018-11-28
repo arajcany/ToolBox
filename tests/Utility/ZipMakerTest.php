@@ -92,7 +92,7 @@ class ZipMakerTest extends TestCase
             $baseDir . "Sample\\empty.txt",
         ];
         $whitelist = ['txt'];
-        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist);
+        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist, null);
         $this->assertEquals($expectedFiles, $fileList);
 
 
@@ -105,7 +105,7 @@ class ZipMakerTest extends TestCase
             $baseDir . "Sample\\empty.txt",
         ];
         $whitelist = ['txt', 'pdf'];
-        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist);
+        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist, null);
         $this->assertEquals($expectedFiles, $fileList);
 
 
@@ -114,7 +114,65 @@ class ZipMakerTest extends TestCase
             $baseDir . "3 Three\\empty.indd",
         ];
         $whitelist = ['indd', 'pdf'];
-        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist);
+        $fileList = $this->zm->makeFileList($baseDir, [], false, $whitelist, null);
+        $this->assertEquals($expectedFiles, $fileList);
+    }
+
+    /**
+     * Test that blacklist
+     */
+    public function testBlacklistFileList()
+    {
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+
+        $expectedFiles = [
+            $baseDir . "config",
+            //$baseDir . "Sample.txt",
+            $baseDir . "1 One\\empty.pdf",
+            //$baseDir . "1 One\\empty.txt",
+            $baseDir . "2 Two\\empty.jpg",
+            //$baseDir . "2 Two\\empty.txt",
+            $baseDir . "3 Three\\empty.indd",
+            //$baseDir . "3 Three\\empty.txt",
+            $baseDir . "Sample\\empty.bat",
+            //$baseDir . "Sample\\empty.txt",
+        ];
+        $blacklist = ['txt'];
+        $fileList = $this->zm->makeFileList($baseDir, [], false, null, $blacklist);
+        $this->assertEquals($expectedFiles, $fileList);
+
+
+        $expectedFiles = [
+            $baseDir . "config",
+            //$baseDir . "Sample.txt",
+            //$baseDir . "1 One\\empty.pdf",
+            //$baseDir . "1 One\\empty.txt",
+            $baseDir . "2 Two\\empty.jpg",
+            //$baseDir . "2 Two\\empty.txt",
+            $baseDir . "3 Three\\empty.indd",
+            //$baseDir . "3 Three\\empty.txt",
+            $baseDir . "Sample\\empty.bat",
+            //$baseDir . "Sample\\empty.txt",
+        ];
+        $blacklist = ['txt', 'pdf'];
+        $fileList = $this->zm->makeFileList($baseDir, [], false, null, $blacklist);
+        $this->assertEquals($expectedFiles, $fileList);
+
+
+        $expectedFiles = [
+            $baseDir . "config",
+            $baseDir . "Sample.txt",
+            //$baseDir . "1 One\\empty.pdf",
+            $baseDir . "1 One\\empty.txt",
+            $baseDir . "2 Two\\empty.jpg",
+            $baseDir . "2 Two\\empty.txt",
+            //$baseDir . "3 Three\\empty.indd",
+            $baseDir . "3 Three\\empty.txt",
+            $baseDir . "Sample\\empty.bat",
+            $baseDir . "Sample\\empty.txt",
+        ];
+        $blacklist = ['indd', 'pdf'];
+        $fileList = $this->zm->makeFileList($baseDir, [], false, null, $blacklist);
         $this->assertEquals($expectedFiles, $fileList);
     }
 

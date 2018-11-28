@@ -57,9 +57,19 @@ class ZipMaker
         if ($extWhitelist == null && $extBlacklist == null) {
             $files = $folderObj->findRecursive();
         } elseif (is_array($extWhitelist)) {
-            $files = $folderObj->findRecursive('.*\.(' . implode("|", $extWhitelist) . ')');
+            //    final regex looks like this
+            //    .*\.(jpg|pdf|txt)
+            $extWhitelistForRegex = implode("|", $extWhitelist);
+            $files = $folderObj->findRecursive('.*\.(' . $extWhitelistForRegex . ')');
         } elseif (is_array($extBlacklist)) {
-            $files = $folderObj->findRecursive('');
+            //    final regex looks like this
+            //    ^(.(?!.*\.jpg|.*\.pdf|.*\.txt))*$
+            $extBlacklistForRegex = [];
+            foreach ($extBlacklist as $extBlacklistItem) {
+                $extBlacklistForRegex[] = '.*\.' . $extBlacklistItem;
+            }
+            $extBlacklistForRegex = implode("|", $extBlacklistForRegex);
+            $files = $folderObj->findRecursive('^(.(?!' . $extBlacklistForRegex . '))*$');
         }
 
         $accepted = [];
