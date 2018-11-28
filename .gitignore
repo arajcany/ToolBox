@@ -6,7 +6,7 @@ composer.lock
 index.php
 /vendor/
 /tmp/
-
+/bin/
 
 # Windows image file caches
 Thumbs.db
