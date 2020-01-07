@@ -15,6 +15,30 @@ use InvalidArgumentException;
 class Security extends CakeSecurity
 {
     /**
+     * Generate a secure GUID/UUID
+     *
+     * @return string
+     */
+    public function guid()
+    {
+        $randomString = Security::randomString();
+        $format = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
+        $formatParts = explode('-', $format);
+
+        $guid = [];
+        $counter = 0;
+        foreach ($formatParts as $formatPart) {
+            $len = strlen($formatPart);
+            $randomStringExtract = substr($randomString, $counter, $len);
+            $guid[] = $randomStringExtract;
+
+            $counter += $len;
+        }
+
+        return implode("-", $guid);
+    }
+
+    /**
      * Main function to Encrypt
      *
      * @param $string
@@ -23,7 +47,7 @@ class Security extends CakeSecurity
     public static function encrypt64($string)
     {
         $key = Configure::read("InternalOptions.key");
-        self::_validateKey($key,'encrypt64()');
+        self::_validateKey($key, 'encrypt64()');
         $hmacSalt = Configure::read("InternalOptions.salt");
 
         $result = parent::encrypt($string, $key, $hmacSalt);
@@ -41,7 +65,7 @@ class Security extends CakeSecurity
     public static function decrypt64($string)
     {
         $key = Configure::read("InternalOptions.key");
-        self::_validateKey($key,'decrypt64()');
+        self::_validateKey($key, 'decrypt64()');
         $hmacSalt = Configure::read("InternalOptions.salt");
 
         $result = @base64_decode($string);
