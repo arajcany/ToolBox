@@ -19,7 +19,7 @@ class Security extends CakeSecurity
      *
      * @return string
      */
-    public function guid()
+    public static function guid()
     {
         $randomString = Security::randomString();
         $format = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
@@ -36,6 +36,27 @@ class Security extends CakeSecurity
         }
 
         return implode("-", $guid);
+    }
+
+    /**
+     * Generate string of letters and numbers that can be used as a "Personalised URL" (PURL).
+     * PURLs are a slightly better looking than guids for use as unique URLs.
+     * They come at the cost of uniqueness. Chance of collisions of you reduce the length.
+     *
+     * @return string
+     */
+    public static function purl($purlLength = null)
+    {
+        $randomString = Security::randomString(2048);
+        $purlLength = 8;
+
+        if (is_int($purlLength)) {
+            $purl = substr(base_convert(sha1($randomString), 16, 36), 0, $purlLength);
+        } else {
+            $purl = base_convert(sha1($randomString), 16, 36);
+        }
+
+        return $purl;
     }
 
     /**
