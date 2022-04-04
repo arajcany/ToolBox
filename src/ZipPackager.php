@@ -201,7 +201,7 @@ class ZipPackager
     {
         $toReturn = [];
 
-        $dirs = ['/tests/',];
+        $dirs = ['/tests/', '/docs/', '/examples/',];
 
         foreach ($rawFileList as $listItem) {
             $listItemNormalised = $this->normalisePath($listItem);
