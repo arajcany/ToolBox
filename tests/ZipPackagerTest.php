@@ -28,7 +28,7 @@ class ZipPackagerTest extends TestCase
     {
         $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
-        $expectedFilesCount = 10;
+        $expectedFilesCount = 11;
 
         $rawFileList = $this->zp->rawFileList($baseDir);
         $this->assertEquals($expectedFilesCount, count($rawFileList));
@@ -52,6 +52,7 @@ class ZipPackagerTest extends TestCase
             "3 Three/empty.txt",
             "Sample/empty.bat",
             "Sample/empty.txt",
+            "vendor/tests/test.txt",
         ];
         sort($expectedFiles);
 
@@ -80,6 +81,7 @@ class ZipPackagerTest extends TestCase
 //            "3 Three/empty.txt",
 //            "Sample/empty.bat",
 //            "Sample/empty.txt",
+            "vendor/tests/test.txt",
         ];
         $rejectFolders = [
             "3 Three\\",
@@ -103,6 +105,7 @@ class ZipPackagerTest extends TestCase
             "3 Three/empty.txt",
             "Sample/empty.bat",
             "Sample/empty.txt",
+            "vendor/tests/test.txt",
         ];
         $rejectFolders = [
             "1 One/empty.pdf",
@@ -136,12 +139,42 @@ class ZipPackagerTest extends TestCase
 //            "3 Three/empty.txt",
             "Sample/empty.bat",
 //            "Sample/empty.txt",
+            "vendor/tests/test.txt",
         ];
         $rejectFileNames = [
             "empty.txt",
         ];
         $rawFileList = $this->zp->rawFileList($baseDir);
         $rawFileList = $this->zp->filterOutByFileName($rawFileList, $rejectFileNames);
+        sort($expectedFiles);
+        sort($rawFileList);
+
+        $this->assertEquals($expectedFiles, $rawFileList);
+    }
+
+    /**
+     * Test that arrays match
+     */
+    public function testFilterOutVendorExtras()
+    {
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
+
+        //Filtering by file name
+        $expectedFiles = [
+            "config",
+            "Sample.txt",
+            "1 One/empty.pdf",
+            "1 One/empty.txt",
+            "2 Two/empty.jpg",
+            "2 Two/empty.txt",
+            "3 Three/empty.indd",
+            "3 Three/empty.txt",
+            "Sample/empty.bat",
+            "Sample/empty.txt",
+//            "vendor/tests/test.txt",
+        ];
+        $rawFileList = $this->zp->rawFileList($baseDir);
+        $rawFileList = $this->zp->filterOutVendorExtras($rawFileList);
         sort($expectedFiles);
         sort($rawFileList);
 
@@ -167,6 +200,7 @@ class ZipPackagerTest extends TestCase
             "3 Three/empty.txt",
 //            "Sample/empty.bat",
             "Sample/empty.txt",
+            "vendor/tests/test.txt",
         ];
         $rejectFileExtensions = [
             "bat",
@@ -198,6 +232,7 @@ class ZipPackagerTest extends TestCase
             "3 Three/empty.txt",
             "Sample/empty.bat",
             "Sample/empty.txt",
+            "vendor/tests/test.txt",
         ];
         sort($expectedFiles);
 

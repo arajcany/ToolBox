@@ -209,7 +209,7 @@ class ZipPackager
             $keepListItemFlag = true;
             foreach ($dirs as $dir) {
                 if (
-                    strpos($listItemNormalised, '/vendor/') !== false &&
+                    (strpos($listItemNormalised, '/vendor/') !== false || strpos($listItemNormalised, 'vendor/') !== false) &&
                     strpos($listItemNormalised, $dir) !== false
                 ) {
                     $keepListItemFlag = false;
