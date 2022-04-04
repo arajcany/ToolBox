@@ -14,9 +14,9 @@
   ],
   "require": {
     "php": ">=7.4.0",
-    "cakephp/filesystem": "^3.9",
-    "cakephp/utility": "^3.9",
-    "cakephp/i18n": "^3.9",
+    "cakephp/filesystem": "^3.10",
+    "cakephp/utility": "^3.10",
+    "cakephp/i18n": "^3.10",
     "ext-zip": "*",
     "league/flysystem": "^2.4",
     "league/climate": "^3.8"
