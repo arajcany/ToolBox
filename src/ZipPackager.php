@@ -106,21 +106,21 @@ class ZipPackager
         $toReturn = [];
 
         foreach ($rawFileList as $listItem) {
-            $listItemLower = strtolower($listItem);
+            $listItemNormalised = $this->normalisePath($listItem);
 
             $keepListItemFlag = true;
             foreach ($rejectFoldersAndFiles as $rejectFolderOrFile) {
-                $rejectFolderOrFileLower = strtolower($rejectFolderOrFile);
+                $rejectFolderOrFileNormalised = $this->normalisePath($rejectFolderOrFile);
 
                 //based on directory
-                if (TextFormatter::endsWith($rejectFolderOrFileLower, "\\") || TextFormatter::endsWith($rejectFolderOrFileLower, "/")) {
-                    if (TextFormatter::startsWith($listItemLower, $rejectFolderOrFileLower)) {
+                if (TextFormatter::endsWith($rejectFolderOrFileNormalised, "/")) {
+                    if (TextFormatter::startsWith($listItemNormalised, $rejectFolderOrFileNormalised)) {
                         $keepListItemFlag = false;
                     }
                 }
 
                 //based on file
-                if ($listItemLower === $rejectFolderOrFileLower) {
+                if ($listItemNormalised === $rejectFolderOrFileNormalised) {
                     $keepListItemFlag = false;
                 }
             }
@@ -173,12 +173,12 @@ class ZipPackager
         $toReturn = [];
 
         foreach ($rawFileList as $listItem) {
-            $listItemLower = strtolower($listItem);
+            $listItemNormalised = $this->normalisePath($listItem);
 
             $keepListItemFlag = true;
             foreach ($endings as $ending) {
-                $endingLower = strtolower($ending);
-                if (TextFormatter::endsWith($listItemLower, $endingLower)) {
+                $endingNormalised = $this->normalisePath($ending);
+                if (TextFormatter::endsWith($listItemNormalised, $endingNormalised)) {
                     $keepListItemFlag = false;
                 }
             }
@@ -204,12 +204,12 @@ class ZipPackager
         $zipList = [];
 
         if (strlen($fsoRoot) > 0) {
-            $fsoRoot = trim($fsoRoot, "/");
-            $fsoRoot = TextFormatter::makeEndsWith($fsoRoot, "\\");
+            $fsoRoot = rtrim($fsoRoot, "\\");
+            $fsoRoot = TextFormatter::makeEndsWith($fsoRoot, "/");
         }
 
         if (strlen($zipRoot) > 0) {
-            $zipRoot = trim($zipRoot, "\\");
+            $zipRoot = rtrim($zipRoot, "\\");
             $zipRoot = TextFormatter::makeEndsWith($zipRoot, "/");
         }
 
@@ -281,6 +281,22 @@ class ZipPackager
             $this->out(__("Failed to close Zip file."));
             return false;
         }
+    }
+
+    /**
+     * Normalise for comparison
+     *  - lowercase
+     *  - forward slash separators
+     *
+     * @param $dirtyPath
+     * @return array|string|string[]
+     */
+    private function normalisePath($dirtyPath)
+    {
+        $cleanPath = $dirtyPath;
+        $cleanPath = strtolower($cleanPath);
+        $cleanPath = str_replace("\\", "/", $cleanPath);
+        return $cleanPath;
     }
 
 

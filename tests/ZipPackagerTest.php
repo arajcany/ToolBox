@@ -26,7 +26,7 @@ class ZipPackagerTest extends TestCase
      */
     public function testCountRawFileList()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
         $expectedFilesCount = 10;
 
@@ -39,7 +39,7 @@ class ZipPackagerTest extends TestCase
      */
     public function testCompareRawFileList()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
         $expectedFiles = [
             "config",
@@ -66,7 +66,7 @@ class ZipPackagerTest extends TestCase
      */
     public function testFilterOutFoldersAndFiles()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
         //Filtering Folders
         $expectedFiles = [
@@ -82,7 +82,7 @@ class ZipPackagerTest extends TestCase
 //            "Sample/empty.txt",
         ];
         $rejectFolders = [
-            "3 Three/",
+            "3 Three\\",
             "sample/"
         ];
         $rawFileList = $this->zp->rawFileList($baseDir);
@@ -122,7 +122,7 @@ class ZipPackagerTest extends TestCase
      */
     public function testFilterOutByFileName()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
         //Filtering by file name
         $expectedFiles = [
@@ -153,7 +153,7 @@ class ZipPackagerTest extends TestCase
      */
     public function testFilterOutByFileExtension()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
         //Filtering by file name
         $expectedFiles = [
@@ -185,7 +185,7 @@ class ZipPackagerTest extends TestCase
      */
     public function testConvertRawFileListToZipList()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
 
         $expectedFiles = [
             "config",
@@ -216,7 +216,7 @@ class ZipPackagerTest extends TestCase
 
     public function testMakeZipFromZipList()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . DS;
+        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
         print_r($this->tstTmpDir);
         $zipFilePath = $this->tstTmpDir . mt_rand(111, 999) . ".zip";
         $rawFileList = $this->zp->rawFileList($baseDir);
