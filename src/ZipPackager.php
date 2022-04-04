@@ -192,6 +192,39 @@ class ZipPackager
     }
 
     /**
+     * Static filter to strip out things like Vendor 'tests' directory
+     *
+     * @param $rawFileList
+     * @return array
+     */
+    private function filterOutVendorExtras($rawFileList): array
+    {
+        $toReturn = [];
+
+        $dirs = ['/tests/',];
+
+        foreach ($rawFileList as $listItem) {
+            $listItemNormalised = $this->normalisePath($listItem);
+
+            $keepListItemFlag = true;
+            foreach ($dirs as $dir) {
+                if (
+                    strpos($listItemNormalised, '/vendor/') !== false &&
+                    strpos($listItemNormalised, $dir) !== false
+                ) {
+                    $keepListItemFlag = false;
+                }
+            }
+
+            if ($keepListItemFlag) {
+                $toReturn[] = $listItem;
+            }
+        }
+
+        return $toReturn;
+    }
+
+    /**
      * Convert a raw file list into a ZipList
      *
      * @param $rawFileList
