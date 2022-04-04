@@ -46,16 +46,50 @@ class ZipPackager
     }
 
     /**
-     * Return a file listing for a given directory.
-     *
-     * Returns an array of file names - empty array on failure
-     * The listing is pure and unfiltered.
-     * File names include paths relative to the $localFsoRootPath
+     * Wrapper function
      *
      * @param string $localFsoRootPath
      * @return array
      */
     public function rawFileList(string $localFsoRootPath): array
+    {
+        return $this->rawList($localFsoRootPath, 'file');
+    }
+
+    /**
+     * Wrapper function
+     *
+     * @param string $localFsoRootPath
+     * @return array
+     */
+    public function rawFolderList(string $localFsoRootPath): array
+    {
+        return $this->rawList($localFsoRootPath, 'folder');
+    }
+
+    /**
+     * Wrapper function
+     *
+     * @param string $localFsoRootPath
+     * @return array multidimensional array ['folders'=>[], 'files'=>[]]
+     */
+    public function rawFileAndFolderList(string $localFsoRootPath): array
+    {
+        return $this->rawList($localFsoRootPath, 'both');
+    }
+
+    /**
+     * Return a file/folder listing for a given directory.
+     *
+     * Returns an array of file/folder names - empty array on failure
+     * The listing is pure and unfiltered.
+     * File/folder names include paths relative to the $localFsoRootPath
+     *
+     * @param string $localFsoRootPath
+     * @param string $mode
+     * @return array
+     */
+    private function rawList(string $localFsoRootPath, string $mode): array
     {
         /**
          * @var FileAttributes|DirectoryAttributes $content
@@ -64,24 +98,43 @@ class ZipPackager
         $localFilesystem = new Filesystem(new LocalFilesystemAdapter($localFsoRootPath));
 
         $rawFileList = [];
+        $rawFolderList = [];
         try {
             $contents = $localFilesystem->listContents('', true);
         } catch (\Throwable $exception) {
-            return $rawFileList;
+            return [];
         }
 
         foreach ($contents as $content) {
             if ($content->isDir()) {
-                continue;
+                $currentPath = $content->path();
+                $currentPath = str_replace("\\", "/", $currentPath);
+                $currentPath = TextFormatter::makeEndsWith($currentPath, "/");
+                $rawFolderList[] = $currentPath;
             }
 
-            $currentPath = $content->path();
-            $rawFileList[] = $currentPath;
+            if ($content->isFile()) {
+                $currentPath = $content->path();
+                $rawFileList[] = $currentPath;
+            }
         }
 
         $this->out(__("Found {0} Files", count($rawFileList)));
+        $this->out(__("Found {0} Folder", count($rawFileList)));
 
-        return $rawFileList;
+        if ($mode === 'folder') {
+            return $rawFolderList;
+        } elseif ($mode === 'file') {
+            return $rawFileList;
+        } elseif ($mode === 'both') {
+            return [
+                'folders' => $rawFolderList,
+                'files' => $rawFileList,
+            ];
+        } else {
+            return [];
+        }
+
     }
 
     /**
@@ -330,6 +383,84 @@ class ZipPackager
         $cleanPath = strtolower($cleanPath);
         $cleanPath = str_replace("\\", "/", $cleanPath);
         return $cleanPath;
+    }
+
+
+    /**
+     * @param $zipLocation
+     * @param $localFsoRootPath
+     * @return array
+     */
+    public function extractZip($zipLocation, $localFsoRootPath = null): array
+    {
+        $localFsoRootPath = TextFormatter::makeEndsWith(trim($localFsoRootPath, "\\/"), "\\");
+        $previousFileAndFolderList = $this->rawFileAndFolderList($localFsoRootPath);
+        print_r($previousFileAndFolderList);
+        $previousFolderList = $previousFileAndFolderList['folders'];
+        $previousFileList = $previousFileAndFolderList['files'];
+
+
+        $za = new ZipArchive();
+        $za->open($zipLocation);
+
+        $fileList = [];
+        $fileNames = [];
+        $folderList = [];
+        $folderNames = [];
+        for ($i = 0; $i < $za->numFiles; $i++) {
+            $stat = $za->statIndex($i);
+
+            if (TextFormatter::endsWith($stat['name'], "/") || TextFormatter::endsWith($stat['name'], "\\")) {
+                $folderList[] = $stat;
+                $folderNames[] = $stat['name'];
+            } else {
+                $fileList[] = $stat;
+                $fileNames[] = $stat['name'];
+            }
+        }
+
+        if (is_dir($localFsoRootPath)) {
+            $za->extractTo($localFsoRootPath);
+        }
+
+        $report = [
+            'status' => false,
+            'folders' => $folderList,
+            'files' => $fileList,
+            'folder_names' => $folderNames,
+            'file_names' => $fileNames,
+            'extract_passed' => [],
+            'extract_failed' => [],
+            'crc_passed' => [],
+            'crc_failed' => [],
+        ];
+
+        foreach ($fileList as $file) {
+            $fullPath = $localFsoRootPath . $file['name'];
+            if (is_file($fullPath)) {
+                $report['extract_passed'][] = $file['name'];
+
+                //extraction may have happened but could be corrupt
+                $crcCheck = crc32(file_get_contents($fullPath));
+                if ($crcCheck === $file['crc']) {
+                    $report['crc_passed'][] = $file['name'];
+                } else {
+                    $report['crc_failed'][] = $file['name'];
+                }
+            } else {
+                $report['extract_failed'][] = $file['name'];
+            }
+        }
+
+        $report['file_list_diff'] = array_diff($previousFileList, $report['file_names']);
+        $report['folder_list_diff'] = array_diff($previousFolderList, $report['folder_names']);
+
+        //true is based on crc_passed extracted files === number of files in archive
+        if (count($report['crc_passed']) === count($report['file_names'])) {
+            $report['status'] = true;
+        }
+
+        return $report;
     }
 
 
