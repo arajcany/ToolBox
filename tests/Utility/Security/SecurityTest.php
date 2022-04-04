@@ -1,19 +1,23 @@
 <?php
 
-namespace arajcany\Test\Utility\Security;
+namespace Security;
 
 use PHPUnit\Framework\TestCase;
 use arajcany\ToolBox\Utility\Security\Security;
 use Cake\Core\Configure;
 
-class BoxesTest extends TestCase
+class SecurityTest extends TestCase
 {
-    private $key;
+    private string $key;
+    private string $salt;
 
     public function __construct($name = null, array $data = [], $dataName = '')
     {
-        $this->key = '92874365087268653011890901274136501734697790106470100977377456371518958423414624532415651205034976541208181714859309728462003';
+        $this->key = sha1(Security::randomBytes(2048));
         Configure::write("InternalOptions.key", $this->key);
+
+        $this->salt = sha1(Security::randomBytes(2048));
+        Configure::write("InternalOptions.salt", $this->salt);
 
         parent::__construct($name, $data, $dataName);
     }

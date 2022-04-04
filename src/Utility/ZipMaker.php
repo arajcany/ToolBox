@@ -9,16 +9,21 @@ use ZipArchive;
 /**
  * Class ZipMaker
  *
- * @package arajcany\ToolBox
- */
-
-/**
- * Class ZipMaker
- *
+ * @deprecated Use ZipPackager instead.
  * @package arajcany\ToolBox
  */
 class ZipMaker
 {
+    /**
+     * Constructor
+     *
+     */
+    public function __construct()
+    {
+        $message = "The ZipMaker Class has been deprecated. Use ZipPackager instead.";
+        trigger_error($message, E_USER_DEPRECATED);
+    }
+
     /**
      * Make a file list based on an input directory.
      * Can pass in a list of relative files/folders to ignore.
@@ -48,7 +53,8 @@ class ZipMaker
         $removeBasePath = false,
         $extWhitelist = null,
         $extBlacklist = null
-    ) {
+    )
+    {
         $basePathClone = $basePath;
         $basePath = TextFormatter::makeEndsWith($basePath, "\\");
 

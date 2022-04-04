@@ -21,7 +21,7 @@ class Security extends CakeSecurity
      */
     public static function guid()
     {
-        $randomString = Security::randomString();
+        $randomString = Security::randomString(2048);
         $format = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
         $formatParts = explode('-', $format);
 
@@ -43,20 +43,14 @@ class Security extends CakeSecurity
      * PURLs are a slightly better looking than guids for use as unique URLs.
      * They come at the cost of uniqueness. Chance of collisions of you reduce the length.
      *
+     * @param int $purlLength
      * @return string
      */
-    public static function purl($purlLength = null)
+    public static function purl(int $purlLength = 8): string
     {
         $randomString = Security::randomString(2048);
-        $purlLength = 8;
-
-        if (is_int($purlLength)) {
-            $purl = substr(base_convert(sha1($randomString), 16, 36), 0, $purlLength);
-        } else {
-            $purl = base_convert(sha1($randomString), 16, 36);
-        }
-
-        return $purl;
+        $purlLength = max(8, $purlLength);
+        return substr(base_convert(sha1($randomString), 16, 36), 0, $purlLength);
     }
 
     /**
@@ -65,7 +59,7 @@ class Security extends CakeSecurity
      * @param $string
      * @return string
      */
-    public static function encrypt64($string)
+    public static function encrypt64($string): string
     {
         $key = Configure::read("InternalOptions.key");
         self::_validateKey($key, 'encrypt64()');
@@ -106,12 +100,9 @@ class Security extends CakeSecurity
      * @param $string
      * @return string
      */
-    public static function encrypt64Url($string)
+    public static function encrypt64Url($string): string
     {
-        $string = self::encrypt64($string);
-        $string = self::makeUrlSafe($string);
-
-        return $string;
+        return self::encrypt64(self::makeUrlSafe($string));
     }
 
     /**
@@ -122,10 +113,7 @@ class Security extends CakeSecurity
      */
     public static function decrypt64Url($string)
     {
-        $string = self::unmakeUrlSafe($string);
-        $string = self::decrypt64($string);
-
-        return $string;
+        return self::unmakeUrlSafe(self::decrypt64($string));
     }
 
     /**
@@ -133,7 +121,7 @@ class Security extends CakeSecurity
      * @param bool $use_padding If true, the "=" padding at end of the encoded value are kept, else it is removed
      * @return string
      */
-    public static function makeUrlSafe($data, $use_padding = false)
+    public static function makeUrlSafe(string $data, bool $use_padding = false): string
     {
         $encoded = strtr($data, '+/', '-_');
         return true === $use_padding ? $encoded : rtrim($encoded, '=');
@@ -143,7 +131,7 @@ class Security extends CakeSecurity
      * @param string $data to unmake URL safe
      * @return string
      */
-    public static function unmakeUrlSafe($data)
+    public static function unmakeUrlSafe(string $data): string
     {
         return strtr($data, '-_', '+/');
     }
@@ -156,7 +144,7 @@ class Security extends CakeSecurity
      * @return void
      * @throws \InvalidArgumentException When key length is null
      */
-    protected static function _validateKey($key, $method)
+    protected static function _validateKey(string $key, string $method)
     {
         if ($key === null) {
             throw new InvalidArgumentException(

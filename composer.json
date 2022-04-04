@@ -13,11 +13,13 @@
     }
   ],
   "require": {
-    "php": ">=7.0.0",
+    "php": ">=7.4.0",
     "cakephp/filesystem": "^3.6",
     "cakephp/utility": "^3.6",
     "cakephp/i18n": "^3.6",
-    "ext-zip": "*"
+    "ext-zip": "*",
+    "league/flysystem": "^2.4",
+    "league/climate": "^3.8"
   },
   "require-dev": {
     "phpunit/phpunit": "*"

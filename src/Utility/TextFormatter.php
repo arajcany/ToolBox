@@ -12,7 +12,7 @@ class TextFormatter
      * @param $needle
      * @return bool
      */
-    public static function startsWith($haystack, $needle)
+    public static function startsWith($haystack, $needle): bool
     {
         $length = strlen($needle);
         return (substr($haystack, 0, $length) === $needle);
@@ -25,7 +25,7 @@ class TextFormatter
      * @param $needle
      * @return bool
      */
-    public static function endsWith($haystack, $needle)
+    public static function endsWith($haystack, $needle): bool
     {
         $length = strlen($needle);
         return $length === 0 || (substr($haystack, -$length) === $needle);
@@ -38,7 +38,7 @@ class TextFormatter
      * @param string $startsWith
      * @return string
      */
-    public static function makeStartsWith($string = "", $startsWith = "")
+    public static function makeStartsWith(string $string = "", string $startsWith = ""): string
     {
         if (self::startsWith($string, $startsWith) === false) {
             $string = $startsWith . $string;
@@ -55,7 +55,7 @@ class TextFormatter
      * @return string
      * @internal param string $startsWith
      */
-    public static function makeEndsWith($string = "", $endsWith = "")
+    public static function makeEndsWith(string $string = "", string $endsWith = ""): string
     {
         if (self::endsWith($string, $endsWith) === false) {
             $string = $string . $endsWith;
@@ -72,16 +72,8 @@ class TextFormatter
      * @param string $endsWith
      * @return string
      */
-    public static function makeStartsWithAndEndsWith($string = "", $startsWith = "", $endsWith = "")
+    public static function makeStartsWithAndEndsWith(string $string = "", string $startsWith = "", string $endsWith = ""): string
     {
-        if (self::endsWith($string, $endsWith) === false) {
-            $string = $string . $endsWith;
-        }
-
-        if (self::startsWith($string, $startsWith) === false) {
-            $string = $startsWith . $string;
-        }
-
-        return $string;
+        return self::makeEndsWith(self::makeStartsWith($string, $startsWith), $endsWith);
     }
 }

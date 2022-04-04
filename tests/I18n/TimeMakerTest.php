@@ -1,6 +1,6 @@
 <?php
 
-namespace arajcany\Test\I18n;
+namespace I18n;
 
 use PHPUnit\Framework\TestCase;
 use arajcany\ToolBox\I18n\TimeMaker;
@@ -28,14 +28,15 @@ class TimeMakerTest extends TestCase
      */
     public function testStringMatchesArray()
     {
-        $string = TimeMaker::makeFrozenTimeFromUnknown(
+        $stringInput = TimeMaker::makeFrozenTimeFromUnknown(
             '2018-04-03 14:02:55'
         );
-        $array = TimeMaker::makeFrozenTimeFromUnknown(
+
+        $arrayInput = TimeMaker::makeFrozenTimeFromUnknown(
             ['year' => '2018', 'month' => '4', 'day' => '3', 'hour' => '14', 'minute' => '2', 'second' => '55']
         );
 
-        $this->assertEquals($string, $array);
+        $this->assertEquals($stringInput, $arrayInput);
     }
 
     /**

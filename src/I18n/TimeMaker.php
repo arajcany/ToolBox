@@ -4,8 +4,7 @@ namespace arajcany\ToolBox\I18n;
 
 use Cake\I18n\FrozenTime;
 use Cake\I18n\Time;
-use Exception;
-use TypeError;
+use Throwable;
 
 class TimeMaker
 {
@@ -18,9 +17,9 @@ class TimeMaker
      * @param string $outputTimezone
      * @return bool|FrozenTime|Time
      */
-    public static function makeTimeFromUnknown($unknown, $inputTimezone = 'utc', $outputTimezone = 'utc')
+    public static function makeTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc')
     {
-        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone, $mode = 'mutable');
+        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone, 'mutable');
     }
 
     /**
@@ -31,9 +30,9 @@ class TimeMaker
      * @param string $outputTimezone
      * @return bool|FrozenTime|Time
      */
-    public static function makeFrozenTimeFromUnknown($unknown, $inputTimezone = 'utc', $outputTimezone = 'utc')
+    public static function makeFrozenTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc')
     {
-        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone, $mode = 'immutable');
+        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone, 'immutable');
     }
 
     /**
@@ -50,25 +49,16 @@ class TimeMaker
      * String - "first day of january 2006"
      * Array - ['year' => '2018','month' => '7','day' => '25','hour' => '15','minute' => '6','second' => '30']
      */
-    private static function makeFromUnknown($unknown, $inputTimezone = 'utc', $outputTimezone = 'utc', $mode = false, $failType = null)
+    private static function makeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc', string $mode = '', bool $failType = false)
     {
 
-        if ($mode == false) {
+        if (!in_array($mode, ['mutable', 'immutable'], true)) {
             return $failType;
         }
 
-        if ($unknown === true) {
+        if (in_array($unknown, [true, false, null], true)) {
             return $failType;
         }
-
-        if ($unknown === false) {
-            return $failType;
-        }
-
-        if ($unknown === null) {
-            return $failType;
-        }
-
 
         //see if the basics will work
         try {
@@ -83,13 +73,11 @@ class TimeMaker
                 return $timeObj->setTimezone($outputTimezone);
             }
 
-        } catch (TypeError $e) {
-
-        } catch (Exception $e) {
+        } catch (Throwable $exception) {
 
         }
 
-        //see if its a $this->request style array
+        //see if it's a $this->request style array
         if (isset($unknown['year']) && isset($unknown['month']) && isset($unknown['day'])) {
             $defaults = [
                 'hour' => '',
@@ -123,9 +111,7 @@ class TimeMaker
                     return $timeObj->setTimezone($outputTimezone);
                 }
 
-            } catch (TypeError $e) {
-
-            } catch (Exception $e) {
+            } catch (Throwable $exception) {
 
             }
         }
