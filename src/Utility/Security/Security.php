@@ -109,11 +109,15 @@ class Security extends CakeSecurity
      * Decrypt URL safe version
      *
      * @param $string
-     * @return bool|string
+     * @return string|null
      */
     public static function decrypt64Url($string)
     {
-        return self::unmakeUrlSafe(self::decrypt64($string));
+        $string = self::decrypt64($string);
+        if (empty($string)) {
+            return null;
+        }
+        return self::unmakeUrlSafe($string);
     }
 
     /**

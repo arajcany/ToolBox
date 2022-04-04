@@ -1,6 +1,6 @@
 <?php
 
-namespace Security;
+namespace Utility\Security;
 
 use PHPUnit\Framework\TestCase;
 use arajcany\ToolBox\Utility\Security\Security;
@@ -71,7 +71,7 @@ class SecurityTest extends TestCase
         $decrypted = Security::decrypt64Url($string);
 
         $this->assertNotEquals($string, $decrypted);
-        $this->assertEquals('', $decrypted);
+        $this->assertEquals(null, $decrypted);
     }
 
 }
