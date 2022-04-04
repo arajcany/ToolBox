@@ -197,7 +197,7 @@ class ZipPackager
      * @param $rawFileList
      * @return array
      */
-    private function filterOutVendorExtras($rawFileList): array
+    public function filterOutVendorExtras($rawFileList): array
     {
         $toReturn = [];
 
