@@ -391,11 +391,14 @@ class ZipPackager
      * @param $localFsoRootPath
      * @return array
      */
-    public function extractZip($zipLocation, $localFsoRootPath = null): array
+    public function extractZip($zipLocation, $localFsoRootPath = null, $eliminateRoot = false): array
     {
         $localFsoRootPath = TextFormatter::makeEndsWith(trim($localFsoRootPath, "\\/"), "\\");
+        if (!is_dir($localFsoRootPath)) {
+            @mkdir($localFsoRootPath, 0777, true);
+        }
+
         $previousFileAndFolderList = $this->rawFileAndFolderList($localFsoRootPath);
-        print_r($previousFileAndFolderList);
         $previousFolderList = $previousFileAndFolderList['folders'];
         $previousFileList = $previousFileAndFolderList['files'];
 
@@ -407,20 +410,63 @@ class ZipPackager
         $fileNames = [];
         $folderList = [];
         $folderNames = [];
+        $roots = [];
         for ($i = 0; $i < $za->numFiles; $i++) {
-            $stat = $za->statIndex($i);
+            $entry = $za->statIndex($i);
+            $entry = str_replace("\\", "/", $entry);
 
-            if (TextFormatter::endsWith($stat['name'], "/") || TextFormatter::endsWith($stat['name'], "\\")) {
-                $folderList[] = $stat;
-                $folderNames[] = $stat['name'];
+            if (TextFormatter::endsWith($entry['name'], "/")) {
+                $folderList[] = $entry;
+                $folderNames[] = $entry['name'];
+
+                //directory so always include first part
+                $entryParts = explode("/", $entry['name']);
+                if (isset($entryParts[0])) {
+                    $roots[] = $entryParts[0];
+                }
             } else {
-                $fileList[] = $stat;
-                $fileNames[] = $stat['name'];
+                $fileList[] = $entry;
+                $fileNames[] = $entry['name'];
+
+                //could be a file in the root of zip so double check
+                $entryParts = explode("/", $entry['name']);
+                if (isset($entryParts[1])) {
+                    $roots[] = $entryParts[0];
+                }
             }
         }
 
-        if (is_dir($localFsoRootPath)) {
-            $za->extractTo($localFsoRootPath);
+        $roots = array_values(array_unique($roots));
+
+        if ($eliminateRoot && count($roots) === 1) {
+            //special extraction to eliminate root folder
+            $rootReplacement = TextFormatter::makeEndsWith($roots[0], "/");
+
+            //make directories
+            foreach ($folderNames as $folderName) {
+                $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $folderName);
+                @mkdir($localPathFinal, 0777, true);
+            }
+
+            //extract files
+            foreach ($fileNames as $fileName) {
+                $fp = $za->getStream($fileName);
+                $contents = '';
+                if ($fp) {
+                    while (!feof($fp)) {
+                        $contents .= fread($fp, 1024);
+                    }
+                    $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileName);
+                    fclose($fp);
+                    file_put_contents($localPathFinal, $contents);
+                }
+            }
+        } else {
+            //extract files as per structure in the zip
+            $rootReplacement = '';
+            if (is_dir($localFsoRootPath)) {
+                $za->extractTo($localFsoRootPath);
+            }
         }
 
         $report = [
@@ -429,6 +475,7 @@ class ZipPackager
             'files' => $fileList,
             'folder_names' => $folderNames,
             'file_names' => $fileNames,
+            'root_folders' => $roots,
             'extract_passed' => [],
             'extract_failed' => [],
             'crc_passed' => [],
@@ -436,13 +483,13 @@ class ZipPackager
         ];
 
         foreach ($fileList as $file) {
-            $fullPath = $localFsoRootPath . $file['name'];
+            $fullPath = $localFsoRootPath . str_replace($rootReplacement, '', $file['name']);
             if (is_file($fullPath)) {
                 $report['extract_passed'][] = $file['name'];
 
                 //extraction may have happened but could be corrupt
                 $crcCheck = crc32(file_get_contents($fullPath));
-                if ($crcCheck === $file['crc']) {
+                if (strval($crcCheck) === strval($file['crc'])) {
                     $report['crc_passed'][] = $file['name'];
                 } else {
                     $report['crc_failed'][] = $file['name'];
@@ -452,8 +499,11 @@ class ZipPackager
             }
         }
 
-        $report['file_list_diff'] = array_diff($previousFileList, $report['file_names']);
-        $report['folder_list_diff'] = array_diff($previousFolderList, $report['folder_names']);
+        //file/folder listing diff
+        $currentFolderList = str_replace($rootReplacement, '', $folderNames);
+        $currentFileList = str_replace($rootReplacement, '', $fileNames);
+        $report['folder_list_diff'] = array_values(array_diff($previousFolderList, $currentFolderList));
+        $report['file_list_diff'] = array_values(array_diff($previousFileList, $currentFileList));
 
         //true is based on crc_passed extracted files === number of files in archive
         if (count($report['crc_passed']) === count($report['file_names'])) {
