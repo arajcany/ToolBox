@@ -9,6 +9,7 @@ use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
+use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use ZipArchive;
 
 /**
@@ -327,7 +328,6 @@ class ZipPackager
      * },
      * ]
      *
-     *
      * @param array $zipList
      * @param string $zipLocation
      * @return bool
@@ -369,6 +369,7 @@ class ZipPackager
         }
     }
 
+
     /**
      * Normalise for comparison
      *  - lowercase
@@ -389,11 +390,12 @@ class ZipPackager
     /**
      * @param $zipLocation
      * @param $localFsoRootPath
+     * @param bool $eliminateRoot
      * @return array
      */
-    public function extractZip($zipLocation, $localFsoRootPath = null, $eliminateRoot = false): array
+    public function extractZip($zipLocation, $localFsoRootPath, $eliminateRoot = false): array
     {
-        $localFsoRootPath = TextFormatter::makeEndsWith(trim($localFsoRootPath, "\\/"), "\\");
+        $localFsoRootPath = TextFormatter::makeDirectoryTrailingBackwardSlash($localFsoRootPath);
         if (!is_dir($localFsoRootPath)) {
             @mkdir($localFsoRootPath, 0777, true);
         }
@@ -513,5 +515,78 @@ class ZipPackager
         return $report;
     }
 
+    /**
+     * @param $baseDir
+     * @param null $rawList
+     * @param array $options
+     * @return array
+     */
+    public function fileStats($baseDir, $rawList = null, array $options = [])
+    {
+        $defaultOptions = [
+            'directory' => true,
+            'file' => true,
+            'sha1' => true,
+            'crc32' => true,
+            'mime' => true,
+            'size' => true
+        ];
+        $options = array_merge($defaultOptions, $options);
+
+        if (empty($baseDir)) {
+            return [];
+        }
+
+        if (!is_dir($baseDir)) {
+            return [];
+        }
+
+        $baseDir = TextFormatter::makeDirectoryTrailingForwardSlash($baseDir);
+
+        if (empty($rawList)) {
+            $rawList = $this->rawFileList($baseDir);
+        }
+
+        $stats = [];
+        $counter = 0;
+        foreach ($rawList as $relativeFile) {
+            $fullPath = $baseDir . $relativeFile;
+            $stats[$counter] = array_combine(array_keys($options), array_pad([], count($options), null));
+            $stats[$counter]['directory'] = $baseDir;
+            $stats[$counter]['file'] = $relativeFile;
+
+            if ($options['sha1'] || $options['crc32'] || $options['mime']) {
+                $contents = file_get_contents($fullPath);
+            } else {
+                $contents = false;
+            }
+
+            if ($options['sha1']) {
+                $stats[$counter]['sha1'] = sha1($contents);
+            }
+
+            if ($options['crc32']) {
+                $stats[$counter]['crc32'] = crc32($contents);
+            }
+
+            if ($options['mime']) {
+                $detector = new  FinfoMimeTypeDetector();
+                $stats[$counter]['mime'] = $detector->detectMimeTypeFromBuffer($contents);
+            }
+
+            if ($options['size']) {
+                if ($contents) {
+                    $stats[$counter]['size'] = strlen($contents);
+                } else {
+                    $stats[$counter]['size'] = filesize($fullPath);
+                }
+            }
+
+            $counter++;
+        }
+
+        return $stats;
+
+    }
 
 }
