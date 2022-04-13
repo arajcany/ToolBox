@@ -76,4 +76,32 @@ class TextFormatter
     {
         return self::makeEndsWith(self::makeStartsWith($string, $startsWith), $endsWith);
     }
+
+    /**
+     * Make a string end with a forward trailing slash (i.e. for directory)
+     * Replace or add as necessary.
+     *
+     * @param string $string
+     * @return string
+     * @internal param string $startsWith
+     */
+    public static function makeDirectoryTrailingForwardSlash(string $string = ""): string
+    {
+        $string = trim($string, "\\");
+        return self::makeEndsWith($string, "/");
+    }
+
+    /**
+     * Make a string end with a backward trailing slash (i.e. for directory)
+     * Replace or add as necessary.
+     *
+     * @param string $string
+     * @return string
+     * @internal param string $startsWith
+     */
+    public static function makeDirectoryTrailingBackwardSlash(string $string = ""): string
+    {
+        $string = trim($string, "/");
+        return self::makeEndsWith($string, "\\");
+    }
 }
