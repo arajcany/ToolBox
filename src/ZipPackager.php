@@ -527,7 +527,7 @@ class ZipPackager
      */
     public function fileStats($baseDir, $rawList = null, array $options = [], $useCache = false)
     {
-        $cacheKey = json_encode([$baseDir, $rawList, $options]);
+        $cacheKey = sha1(json_encode([$baseDir, $rawList, $options]));
         if (isset($this->cache[$cacheKey]) && $useCache === true) {
             return $this->cache[$cacheKey];
         }
