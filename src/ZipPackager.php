@@ -21,6 +21,7 @@ class ZipPackager
 {
     private CLImate $io;
     private bool $verbose = false;
+    private array $cache = [];
 
     /**
      * Constructor
@@ -516,13 +517,21 @@ class ZipPackager
     }
 
     /**
-     * @param $baseDir
-     * @param null $rawList
-     * @param array $options
+     * Get information about files from the FSO.
+     * Can use caching to speed up sequential reads.
+     *
+     * @param string $baseDir base directory of files - will read all files if no $rawList supplied
+     * @param null $rawList read only these files from the base directory
+     * @param array $options type of file information to provide
      * @return array
      */
-    public function fileStats($baseDir, $rawList = null, array $options = [])
+    public function fileStats($baseDir, $rawList = null, array $options = [], $useCache = false)
     {
+        $cacheKey = json_encode([$baseDir, $rawList, $options]);
+        if (isset($this->cache[$cacheKey]) && $useCache === true) {
+            return $this->cache[$cacheKey];
+        }
+
         $defaultOptions = [
             'directory' => true,
             'file' => true,
@@ -585,8 +594,8 @@ class ZipPackager
             $counter++;
         }
 
+        $this->cache[$cacheKey] = $stats;
         return $stats;
-
     }
 
 }

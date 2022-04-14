@@ -18,7 +18,8 @@
     "cakephp/i18n": "^4.3",
     "ext-zip": "*",
     "league/flysystem": "^2.4",
-    "league/climate": "^3.8"
+    "league/climate": "^3.8",
+    "ext-json": "*"
   },
   "require-dev": {
     "phpunit/phpunit": "*"
