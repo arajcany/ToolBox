@@ -13,16 +13,17 @@
     }
   ],
   "require": {
-    "php": ">=7.4.0",
+    "php": "^8.0.19",
     "cakephp/utility": "^4.3",
     "cakephp/i18n": "^4.3",
     "ext-zip": "*",
-    "league/flysystem": "^2.4",
+    "league/flysystem": "^3.0",
     "league/climate": "^3.8",
     "ext-json": "*"
   },
   "require-dev": {
-    "phpunit/phpunit": "*"
+    "phpunit/phpunit": "*",
+    "symfony/var-dumper": "*"
   },
   "autoload": {
     "psr-4": {
