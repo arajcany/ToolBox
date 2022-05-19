@@ -19,7 +19,7 @@ class Security extends CakeSecurity
      *
      * @return string
      */
-    public static function guid()
+    public static function guid(): string
     {
         $randomString = Security::randomString(2048);
         $format = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
@@ -75,9 +75,9 @@ class Security extends CakeSecurity
      * Main function to Decrypt
      *
      * @param $string
-     * @return bool|string
+     * @return string
      */
-    public static function decrypt64($string)
+    public static function decrypt64($string): string
     {
         $key = Configure::read("InternalOptions.key");
         self::_validateKey($key, 'decrypt64()');
@@ -87,6 +87,9 @@ class Security extends CakeSecurity
 
         if ($result) {
             $result = parent::decrypt($result, $key, $hmacSalt);
+            if ($result == null) {
+                $result = '';
+            }
         } else {
             $result = '';
         }
@@ -109,13 +112,13 @@ class Security extends CakeSecurity
      * Decrypt URL safe version
      *
      * @param $string
-     * @return string|null
+     * @return string
      */
-    public static function decrypt64Url($string)
+    public static function decrypt64Url($string): string
     {
         $string = self::decrypt64($string);
         if (empty($string)) {
-            return null;
+            return '';
         }
         return self::unmakeUrlSafe($string);
     }
@@ -146,7 +149,7 @@ class Security extends CakeSecurity
      * @param string $key Key to check.
      * @param string $method The method the key is being checked for.
      * @return void
-     * @throws \InvalidArgumentException When key length is null
+     * @throws InvalidArgumentException When key length is null
      */
     protected static function _validateKey(string $key, string $method)
     {

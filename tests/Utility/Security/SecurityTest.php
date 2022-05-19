@@ -70,8 +70,8 @@ class SecurityTest extends TestCase
         $string = 'abc123!@#$%^&*()';
         $decrypted = Security::decrypt64Url($string);
 
-        $this->assertNotEquals($string, $decrypted);
-        $this->assertEquals(null, $decrypted);
+        $this->assertIsString($decrypted);
+        $this->assertEquals('', $decrypted);
     }
 
 }
