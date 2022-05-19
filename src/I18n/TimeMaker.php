@@ -3,7 +3,6 @@
 namespace arajcany\ToolBox\I18n;
 
 use Cake\I18n\FrozenTime;
-use Cake\I18n\Time;
 use Throwable;
 
 class TimeMaker
@@ -12,14 +11,16 @@ class TimeMaker
     /**
      * Wrapper function
      *
+     * @deprecated use makeFrozenTimeFromUnknown() as mutable is no longer supported
+     *
      * @param $unknown
      * @param string $inputTimezone
      * @param string $outputTimezone
-     * @return bool|FrozenTime|Time
+     * @return bool|FrozenTime
      */
     public static function makeTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc')
     {
-        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone, 'mutable');
+        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone);
     }
 
     /**
@@ -28,11 +29,11 @@ class TimeMaker
      * @param $unknown
      * @param string $inputTimezone
      * @param string $outputTimezone
-     * @return bool|FrozenTime|Time
+     * @return bool|FrozenTime
      */
     public static function makeFrozenTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc')
     {
-        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone, 'immutable');
+        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone);
     }
 
     /**
@@ -41,38 +42,23 @@ class TimeMaker
      * @param $unknown
      * @param string $inputTimezone
      * @param string $outputTimezone
-     * @param bool|string $mode 'mutable' or 'immutable'
      * @param bool|null $failType Return this on failure to make a DateTime object
-     * @return bool|null|FrozenTime|Time
+     * @return bool|null|FrozenTime
      *
      * $unknown examples
      * String - "first day of january 2006"
      * Array - ['year' => '2018','month' => '7','day' => '25','hour' => '15','minute' => '6','second' => '30']
      */
-    private static function makeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc', string $mode = '', bool $failType = false)
+    private static function makeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc', bool $failType = false)
     {
-
-        if (!in_array($mode, ['mutable', 'immutable'], true)) {
-            return $failType;
-        }
-
         if (in_array($unknown, [true, false, null], true)) {
             return $failType;
         }
 
         //see if the basics will work
         try {
-
-            if ($mode == 'mutable') {
-                $timeObj = new Time($unknown, $inputTimezone);
-                return $timeObj->setTimezone($outputTimezone);
-            }
-
-            if ($mode == 'immutable') {
-                $timeObj = new FrozenTime($unknown, $inputTimezone);
-                return $timeObj->setTimezone($outputTimezone);
-            }
-
+            $timeObj = new FrozenTime($unknown, $inputTimezone);
+            return $timeObj->setTimezone($outputTimezone);
         } catch (Throwable $exception) {
 
         }
@@ -100,17 +86,8 @@ class TimeMaker
             }
 
             try {
-
-                if ($mode == 'mutable') {
-                    $timeObj = new Time($unknownStructuredString, $inputTimezone);
-                    return $timeObj->setTimezone($outputTimezone);
-                }
-
-                if ($mode == 'immutable') {
-                    $timeObj = new FrozenTime($unknownStructuredString, $inputTimezone);
-                    return $timeObj->setTimezone($outputTimezone);
-                }
-
+                $timeObj = new FrozenTime($unknownStructuredString, $inputTimezone);
+                return $timeObj->setTimezone($outputTimezone);
             } catch (Throwable $exception) {
 
             }
