@@ -49,28 +49,28 @@ class TextGrouper
 
             while (count($items) > 0) {
                 $itemsFirstKey = array_key_first($items);
-                $groups[$cnt][$itemsFirstKey] = $items[$itemsFirstKey];
+                $currentGroup = [];
+                $currentGroup[$itemsFirstKey] = $items[$itemsFirstKey];
                 unset($items[$itemsFirstKey]);
 
                 $beforeCount = 0;
                 $afterCount = 1;
                 while ($beforeCount !== $afterCount) {
-
                     $beforeCount = count($items);
-                    foreach ($groups[$cnt] as $keyItemRef => $itemRef) {
+                    foreach ($currentGroup as $keyItemRef => $itemRef) {
                         foreach ($items as $keyItemCompare => $itemCompare) {
                             $calc = similar_text($itemRef, $itemCompare, $percent);
                             if ($percent >= $thresholdPercent) {
-                                $groups[$cnt][$keyItemCompare] = $itemCompare;
-                                $groupEntriesTrigger = max($groupEntriesTrigger, count($groups[$cnt]));
+                                $currentGroup[$keyItemCompare] = $itemCompare;
+                                $groupEntriesTrigger = max($groupEntriesTrigger, count($currentGroup));
                                 unset($items[$keyItemCompare]);
                             }
                         }
                     }
                     $afterCount = count($items);
-
                 }
 
+                $groups[$cnt] = $currentGroup;
                 $cnt++;
             }
 
