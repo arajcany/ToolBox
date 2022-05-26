@@ -8,14 +8,21 @@ class TextGrouper
     /**
      * @param array $listOfItems
      * @param bool $ignorePureMatches
+     * @param bool $groupsMustOutweighSingles
      * @return array
      */
-    public static function bySimilarity(array $listOfItems, bool $ignorePureMatches = true): array
+    public static function bySimilarity(array $listOfItems, bool $ignorePureMatches = true, bool $groupsMustOutweighSingles = true): array
     {
+        //to be considered a group you need at least N entries...
+        $groupEntriesTriggerThreshold = 2;
+
+        //are they really that similar if the match is below N%...?
+        $lowerMatchLimit = 85;
+
         if ($ignorePureMatches) {
-            $decrementingRange = range(99, 0);
+            $decrementingRange = range(99, $lowerMatchLimit);
         } else {
-            $decrementingRange = range(100, 0);
+            $decrementingRange = range(100, $lowerMatchLimit);
         }
 
         //polyfill
@@ -41,6 +48,7 @@ class TextGrouper
         }
 
         foreach ($decrementingRange as $thresholdPercent) {
+            $valuesCompared = [];
             $groups = [];
             $cnt = 0;
 
@@ -59,11 +67,14 @@ class TextGrouper
                     $beforeCount = count($items);
                     foreach ($groups[$cnt] as $keyItemRef => $itemRef) {
                         foreach ($items as $keyItemCompare => $itemCompare) {
-                            $calc = similar_text($itemRef, $itemCompare, $percent);
-                            if ($percent >= $thresholdPercent) {
-                                $groups[$cnt][$keyItemCompare] = $itemCompare;
-                                $groupEntriesTrigger = max($groupEntriesTrigger, count($groups[$cnt]));
-                                unset($items[$keyItemCompare]);
+                            if (!isset($valuesCompared[$keyItemRef][$keyItemCompare])) {
+                                $calc = similar_text($itemRef, $itemCompare, $percent);
+                                if ($percent >= $thresholdPercent) {
+                                    $groups[$cnt][$keyItemCompare] = $itemCompare;
+                                    $groupEntriesTrigger = max($groupEntriesTrigger, count($groups[$cnt]));
+                                    unset($items[$keyItemCompare]);
+                                }
+                                $valuesCompared[$keyItemRef][$keyItemCompare] = $percent;
                             }
                         }
                     }
@@ -74,12 +85,33 @@ class TextGrouper
                 $cnt++;
             }
 
-            if ($thresholdPercent === 0 || $groupEntriesTrigger >= 2) {
-                return $groups;
+            if ($groupEntriesTrigger >= $groupEntriesTriggerThreshold) {
+                if ($groupsMustOutweighSingles) {
+                    $countSingles = 0;
+                    $countMulti = 0;
+                    foreach ($groups as $group) {
+                        if (count($group) == 1) {
+                            $countSingles++;
+                        } elseif (count($group) > 1) {
+                            $countMulti++;
+                        }
+                    }
+                    if ($countMulti >= $countSingles) {
+                        return $groups;
+                    }
+                } else {
+                    return $groups;
+                }
             }
         }
 
-        return [$listOfItems];
+        //something went wrong!
+        if (isset($groups) && (count($groups, COUNT_RECURSIVE) > count($groups, COUNT_NORMAL))) {
+            return $groups;
+        } else {
+            return [$listOfItems];
+        }
     }
+
 
 }
