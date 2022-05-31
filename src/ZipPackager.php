@@ -416,7 +416,7 @@ class ZipPackager
         $roots = [];
         for ($i = 0; $i < $za->numFiles; $i++) {
             $entry = $za->statIndex($i);
-            $entry = str_replace("\\", "/", $entry);
+            $entry['name'] = str_replace("\\", "/", $entry['name']);
 
             if (TextFormatter::endsWith($entry['name'], "/")) {
                 $folderList[] = $entry;
@@ -445,7 +445,7 @@ class ZipPackager
             //special extraction to eliminate root folder
             $rootReplacement = TextFormatter::makeEndsWith($roots[0], "/");
 
-            //make directories
+            //make directories ($folderNames could be empty if the maker of the ZIP did not explicitly put directories into the zip)
             foreach ($folderNames as $folderName) {
                 $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $folderName);
                 @mkdir($localPathFinal, 0777, true);
@@ -459,8 +459,15 @@ class ZipPackager
                     while (!feof($fp)) {
                         $contents .= fread($fp, 1024);
                     }
-                    $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileName);
                     fclose($fp);
+                    $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileName);
+
+                    //test that dir exists
+                    $bareDir = pathinfo($localPathFinal, PATHINFO_DIRNAME);
+                    if (!is_dir($bareDir)) {
+                        @mkdir($bareDir, 0777, true);
+                    }
+
                     file_put_contents($localPathFinal, $contents);
                 }
             }

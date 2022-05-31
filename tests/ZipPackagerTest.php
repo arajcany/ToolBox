@@ -252,14 +252,45 @@ class ZipPackagerTest extends TestCase
     public function testMakeZipFromZipList()
     {
         $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
-        print_r($this->tstTmpDir);
-        $zipFilePath = $this->tstTmpDir . mt_rand(111, 999) . ".zip";
+        $rnd = mt_rand(111, 999);
+        $zipFilePath = $this->tstTmpDir . $rnd . ".zip";
         $rawFileList = $this->zp->rawFileList($baseDir);
         $zipList = $this->zp->convertRawFileListToZipList($rawFileList, $baseDir, "FooBar");
         $result = $this->zp->makeZipFromZipList($zipFilePath, $zipList);
-        unlink($zipFilePath);
-
         $this->assertTrue($result);
+
+        //extract keep root
+        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_keep/", false);
+        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_keep/FooBar/1 One"));
+
+        //extract eliminate root
+        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_eliminate/", true);
+        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_eliminate/1 One"));
+
+        //cleanup
+        unlink($zipFilePath);
+        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($this->tstTmpDir);
+        $filesystem = new League\Flysystem\Filesystem($adapter);
+        $filesystem->deleteDirectory($rnd);
+    }
+
+    public function testExtractZipEmptyFolder()
+    {
+        $zipFilePath = $this->tstHomeDir . "ZipMakerDirectoryStructureTest.zip";
+        $rnd = mt_rand(111, 999);
+
+        //extract keep root
+        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_keep/", false);
+        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_keep/ZipMakerDirectoryStructureTest/1 One"));
+
+        //extract eliminate root
+        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_eliminate/", true);
+        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_eliminate/1 One"));
+
+        //cleanup
+        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($this->tstTmpDir);
+        $filesystem = new League\Flysystem\Filesystem($adapter);
+        $filesystem->deleteDirectory($rnd);
     }
 
 
