@@ -105,7 +105,7 @@ class Security extends CakeSecurity
      */
     public static function encrypt64Url($string): string
     {
-        return self::encrypt64(self::makeUrlSafe($string));
+        return self::makeUrlSafe(self::encrypt64($string));
     }
 
     /**
@@ -116,11 +116,12 @@ class Security extends CakeSecurity
      */
     public static function decrypt64Url($string): string
     {
-        $string = self::decrypt64($string);
+        $string = self::decrypt64(self::unmakeUrlSafe($string));
+
         if (empty($string)) {
-            return '';
+            $string = '';
         }
-        return self::unmakeUrlSafe($string);
+        return $string;
     }
 
     /**

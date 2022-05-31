@@ -74,4 +74,13 @@ class SecurityTest extends TestCase
         $this->assertEquals('', $decrypted);
     }
 
+
+    public function testEncryptDecryptUrlSafeRoundTrip()
+    {
+        $string = "https:\/\/example.com\/20220119_100605.zip";
+        $encrypted = Security::encrypt64Url($string);
+        $decrypted = Security::decrypt64Url($encrypted);
+        $this->assertEquals($string, $decrypted);
+    }
+
 }
