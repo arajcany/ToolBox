@@ -5,6 +5,7 @@ namespace arajcany\ToolBox;
 
 use arajcany\ToolBox\Utility\TextFormatter;
 use League\CLImate\CLImate;
+use League\CLImate\TerminalObject\Dynamic\Progress;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\Filesystem;
@@ -19,7 +20,8 @@ use ZipArchive;
  */
 class ZipPackager
 {
-    private CLImate $io;
+    private CLImate|false $io;
+    private Progress|false $_progressBar = false;
     private bool $verbose = false;
     private array $cache = [];
 
@@ -29,7 +31,11 @@ class ZipPackager
      */
     public function __construct()
     {
-        $this->io = new CLImate;
+        try {
+            $this->io = new CLImate;
+        } catch (\Throwable $exception) {
+            $this->io = false;
+        }
     }
 
     /**
@@ -40,11 +46,80 @@ class ZipPackager
         $this->verbose = $verbose;
     }
 
-    private function out($message)
+    private function applyReplacements($message, $replacers)
     {
-        if ($this->verbose) {
-            $this->io->out($message);
+        if (is_string($replacers) || is_int($replacers)) {
+            $replacers = [$replacers];
         }
+
+        if (!empty($replacers)) {
+            foreach ($replacers as $k => $replacement) {
+                $search = "{" . $k . "}";
+                $message = str_replace($search, $replacement, $message);
+            }
+        }
+        return $message;
+    }
+
+    private function out($message, ...$replacers)
+    {
+        if (!$this->verbose || !$this->io) {
+            return;
+        }
+        $message = $this->applyReplacements($message, $replacers);
+        $this->io->out($message);
+    }
+
+    private function info($message, ...$replacers)
+    {
+        if (!$this->verbose || !$this->io) {
+            return;
+        }
+        $message = $this->applyReplacements($message, $replacers);
+        $this->io->lightBlue($message);
+    }
+
+    private function success($message, ...$replacers)
+    {
+        if (!$this->verbose || !$this->io) {
+            return;
+        }
+        $message = $this->applyReplacements($message, $replacers);
+        $this->io->green($message);
+    }
+
+    private function warning($message, ...$replacers)
+    {
+        if (!$this->verbose || !$this->io) {
+            return;
+        }
+        $message = $this->applyReplacements($message, $replacers);
+        $this->io->lightYellow($message);
+    }
+
+    private function error($message, ...$replacers)
+    {
+        if (!$this->verbose || !$this->io) {
+            return;
+        }
+        $message = $this->applyReplacements($message, $replacers);
+        $this->io->lightRed($message);
+    }
+
+    private function progressBar($current, $total, $label = null)
+    {
+        if (!$this->verbose || !$this->io) {
+            return;
+        }
+
+        $factor = ($total / 100);
+        $currentFixed = intval(floor($current / $factor));
+        $totalFixed = 100;
+        if (empty($this->_progressBar)) {
+            $this->_progressBar = $this->io->progress($totalFixed);
+        }
+        $this->_progressBar->total($totalFixed);
+        $this->_progressBar->current($currentFixed, $label);
     }
 
     /**
@@ -121,8 +196,8 @@ class ZipPackager
             }
         }
 
-        $this->out(__("Found {0} Files", count($rawFileList)));
-        $this->out(__("Found {0} Folder", count($rawFileList)));
+        $this->out("Found {0} Files", count($rawFileList));
+        $this->out("Found {0} Folders", count($rawFolderList));
 
         if ($mode === 'folder') {
             return $rawFolderList;
@@ -247,7 +322,7 @@ class ZipPackager
     }
 
     /**
-     * Static filter to strip out things like Vendor 'tests' directory
+     * Static filter to strip out things like Vendor 'tests' directories
      *
      * @param $rawFileList
      * @return array
@@ -258,24 +333,61 @@ class ZipPackager
 
         $dirs = ['/tests/', '/docs/', '/examples/',];
 
+        $filteredOut = [];
+
         foreach ($rawFileList as $listItem) {
             $listItemNormalised = $this->normalisePath($listItem);
-
+            $listItemNormalised = strtolower($listItemNormalised);
             $keepListItemFlag = true;
+
+            if (str_contains($listItemNormalised, '/vendor/')) {
+                foreach ($dirs as $dir) {
+                    if (str_contains($listItemNormalised, $dir)) {
+                        $keepListItemFlag = false;
+                    }
+                }
+            }
+
+            if ($keepListItemFlag) {
+                $toReturn[] = $listItem;
+            } else {
+                $filteredOut[] = $listItem;
+            }
+        }
+        return $toReturn;
+    }
+
+    /**
+     * Static filter to strip out things like Vendor 'tests' directories
+     *
+     * @param $rawFileList
+     * @return array
+     */
+    public function filterOutHidden($rawFileList): array
+    {
+        $toReturn = [];
+
+        $dirs = ['.git/', '.idea/',];
+
+        $filteredOut = [];
+
+        foreach ($rawFileList as $listItem) {
+            $listItemNormalised = $this->normalisePath($listItem);
+            $listItemNormalised = strtolower($listItemNormalised);
+            $keepListItemFlag = true;
+
             foreach ($dirs as $dir) {
-                if (
-                    (strpos($listItemNormalised, '/vendor/') !== false || strpos($listItemNormalised, 'vendor/') !== false) &&
-                    strpos($listItemNormalised, $dir) !== false
-                ) {
+                if (str_contains($listItemNormalised, $dir)) {
                     $keepListItemFlag = false;
                 }
             }
 
             if ($keepListItemFlag) {
                 $toReturn[] = $listItem;
+            } else {
+                $filteredOut[] = $listItem;
             }
         }
-
         return $toReturn;
     }
 
@@ -340,6 +452,8 @@ class ZipPackager
         $zip->open($zipLocation, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         $totalCount = count($zipList);
+        $everyNFiles = 13; //every N files
+
         $counter = 0;
         foreach ($zipList as $file) {
             if (is_array($file)) {
@@ -347,25 +461,26 @@ class ZipPackager
                     $result = $zip->addFile($file['external'], $file['internal']);
                     if ($result) {
                         $counter++;
-                        if ($counter % 500 === 0) {
-                            $this->out(__("Zipped {0} of {1} files.", $counter, $totalCount));
+                        if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
+                            $message = $this->applyReplacements("Zipped {0} of {1} files.", [$counter, $totalCount]);
+                            $this->progressBar($counter, $totalCount, $message);
                         }
                     }
                 }
             }
         }
 
-        $this->out(__("Closing Zip file."));
+        $this->out("Closing Zip file.");
         if ($zip->close()) {
             if ($counter === $totalCount) {
-                $this->out(__("Zipped {0} files.", $totalCount));
+                $this->out("Zipped {0} files.", $totalCount);
                 return true;
             } else {
-                $this->out(__("Only zipped {0} of {1} files", $counter, $totalCount));
+                $this->out("Only zipped {0} of {1} files", $counter, $totalCount);
                 return false;
             }
         } else {
-            $this->out(__("Failed to close Zip file."));
+            $this->out("Failed to close Zip file.");
             return false;
         }
     }

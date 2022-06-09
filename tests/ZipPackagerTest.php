@@ -16,6 +16,7 @@ class ZipPackagerTest extends TestCase
 
         $this->now = date("Y-m-d H:i:s");
         $this->zp = new ZipPackager();
+        $this->zp->setVerbose(true);
         $this->tstHomeDir = str_replace("\\Utility", '', __DIR__) . DS;
         $this->tstTmpDir = __DIR__ . "\\..\\tmp\\";
     }
