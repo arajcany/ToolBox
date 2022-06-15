@@ -224,7 +224,7 @@ class ZipPackager
             if ($content->isDir()) {
                 $currentPath = $content->path();
                 $currentPath = str_replace("\\", "/", $currentPath);
-                $currentPath = TextFormatter::makeEndsWith($currentPath, "/");
+                $currentPath = TextFormatter::makeDirectoryTrailingForwardSlash($currentPath);
                 $rawFolderList[] = $currentPath;
             }
 
@@ -441,12 +441,12 @@ class ZipPackager
 
         if (strlen($fsoRoot) > 0) {
             $fsoRoot = rtrim($fsoRoot, "\\");
-            $fsoRoot = TextFormatter::makeEndsWith($fsoRoot, "/");
+            $fsoRoot = TextFormatter::makeDirectoryTrailingForwardSlash($fsoRoot);
         }
 
         if (strlen($zipRoot) > 0) {
             $zipRoot = rtrim($zipRoot, "\\");
-            $zipRoot = TextFormatter::makeEndsWith($zipRoot, "/");
+            $zipRoot = TextFormatter::makeDirectoryTrailingForwardSlash($zipRoot);
         }
 
         foreach ($rawFileList as $file) {
@@ -635,7 +635,7 @@ class ZipPackager
         $za->open($zipLocation);
         if ($eliminateRoot && count($roots) === 1) {
             //special extraction to eliminate root folder
-            $rootReplacement = TextFormatter::makeEndsWith($roots[0], "/");
+            $rootReplacement = TextFormatter::makeDirectoryTrailingForwardSlash($roots[0]);
 
             //make directories ($folderNames could be empty if the maker of the ZIP did not explicitly put directories into the zip)
             foreach ($folderNames as $folderName) {
@@ -729,14 +729,14 @@ class ZipPackager
             'size' => false
         ];
 
-        $localFsoRootPath = TextFormatter::makeEndsWith($localFsoRootPath, "/");
+        $localFsoRootPath = TextFormatter::makeDirectoryTrailingForwardSlash($localFsoRootPath);
 
         $zipStats = $this->zipStats($zipLocation, false);
         $fsoStats = $this->fileStats($localFsoRootPath, null, $options, false);
 
         $zipRootFolder = '';
         if (isset($zipStats[0]['root'])) {
-            $zipRootFolder = TextFormatter::makeEndsWith($zipStats[0]['root'], "/");
+            $zipRootFolder = TextFormatter::makeDirectoryTrailingForwardSlash($zipStats[0]['root']);
         }
 
         $report = [
