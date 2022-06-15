@@ -144,13 +144,20 @@ class ZipPackager
         }
 
         $factor = ($total / 100);
-        $currentFixed = intval(floor($current / $factor));
+        $currentFixed = intval(ceil($current / $factor));
         $totalFixed = 100;
         if (empty($this->_progressBar)) {
+            $this->io->out('');
             $this->_progressBar = $this->io->progress($totalFixed);
         }
         $this->_progressBar->total($totalFixed);
         $this->_progressBar->current($currentFixed, $label);
+
+        //100% so reset for next time
+        if ($current === $total) {
+            $this->io->out('');
+            $this->_progressBar = false;
+        }
     }
 
     /**
@@ -227,8 +234,8 @@ class ZipPackager
             }
         }
 
-        $this->out("Found {0} Files", count($rawFileList));
-        $this->out("Found {0} Folders", count($rawFolderList));
+        $this->out("Found {0} Files in FSO", count($rawFileList));
+        $this->out("Found {0} Folders in FSO", count($rawFolderList));
 
         if ($mode === 'folder') {
             return $rawFolderList;
@@ -554,26 +561,7 @@ class ZipPackager
             $report = [
                 'status' => true,
                 'timer' => 0,
-                'folders' => [],
-                'files' => [],
-                'folder_names' => [],
-                'file_names' => [],
-                'root_folders' => [],
-                'extract_passed' => [],
-                'extract_failed' => [],
-                'crc_passed' => [],
-                'crc_failed' => [],
             ];
-
-            foreach ($diffReport['fsoExtra'] as $extra) {
-                $file = ltrim(str_replace($localFsoRootPath, "", $extra), "\\/");
-                $path = TextFormatter::makeDirectoryTrailingForwardSlash(pathinfo($file, PATHINFO_DIRNAME));
-                if ($path !== './') {
-                    $report['folder_list_diff'][] = $path;
-                }
-                $report['file_list_diff'][] = $file;
-            }
-
             $this->debugResults($report, 'extractZipDifference');
             return $report;
         }
@@ -602,10 +590,6 @@ class ZipPackager
                 return ['status' => false,];
             }
         }
-
-        $previousFileAndFolderList = $this->rawFileAndFolderList($localFsoRootPath);
-        $previousFolderList = $previousFileAndFolderList['folders'];
-        $previousFileList = $previousFileAndFolderList['files'];
 
         //collect information that will be used in cross-checking and extraction
         $entryStats = $this->zipStats($zipLocation, true);
@@ -707,49 +691,17 @@ class ZipPackager
             }
         }
 
-        $this->out("Checking Files.");
+        //considered successful extraction if the FSO is in sync with the ZIP
+        $diffReport = $this->getZipFsoDifference($zipLocation, $localFsoRootPath, $eliminateRoot);
+        if (empty($diffReport['zipChanged']) && empty($diffReport['zipExtra'])) {
+            $isSuccess = true;
+        } else {
+            $isSuccess = false;
+        }
         $report = [
-            'status' => false,
+            'status' => $isSuccess,
             'timer' => 0,
-            'folders' => $folderEntries,
-            'files' => $fileEntries,
-            'folder_names' => $folderNames,
-            'file_names' => $fileNames,
-            'root_folders' => $roots,
-            'extract_passed' => [],
-            'extract_failed' => [],
-            'crc_passed' => [],
-            'crc_failed' => [],
         ];
-
-        foreach ($fileEntries as $fileEntry) {
-            $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileEntry['name_normalised']);
-            if (is_file($localPathFinal)) {
-                $report['extract_passed'][] = $fileEntry['name_normalised'];
-
-                //extraction may have happened but could be corrupt
-                $crcCheck = crc32(file_get_contents($localPathFinal));
-                if (strval($crcCheck) === strval($fileEntry['crc'])) {
-                    $report['crc_passed'][] = $fileEntry['name_normalised'];
-                } else {
-                    $report['crc_failed'][] = $fileEntry['name_normalised'];
-                }
-            } else {
-                $report['extract_failed'][] = $fileEntry['name_normalised'];
-            }
-        }
-
-        //file/folder listing diff
-        $this->out("Compiling Report.");
-        $currentFolderList = str_replace($rootReplacement, '', $folderNames);
-        $currentFileList = str_replace($rootReplacement, '', $fileNames);
-        $report['folder_list_diff'] = array_values(array_diff($previousFolderList, $currentFolderList));
-        $report['file_list_diff'] = array_values(array_diff($previousFileList, $currentFileList));
-
-        //true is based on crc_passed extracted files === number of files in archive
-        if (count($report['crc_passed']) === count($fileEntries)) {
-            $report['status'] = true;
-        }
         $timerEnd = microtime(true);
         $report['timer'] = $timerEnd - $timeStart;
 
@@ -759,7 +711,7 @@ class ZipPackager
     }
 
     /**
-     * Determines what needs to be extracted based on missing files and change in CRC checksum.
+     * Determines the difference between FSO and ZIP based on missing files and changes in CRC checksum.
      *
      * @param string $zipLocation
      * @param string $localFsoRootPath
@@ -779,8 +731,8 @@ class ZipPackager
 
         $localFsoRootPath = TextFormatter::makeEndsWith($localFsoRootPath, "/");
 
-        $zipStats = $this->zipStats($zipLocation, true);
-        $fsoStats = $this->fileStats($localFsoRootPath, null, $options, true);
+        $zipStats = $this->zipStats($zipLocation, false);
+        $fsoStats = $this->fileStats($localFsoRootPath, null, $options, false);
 
         $zipRootFolder = '';
         if (isset($zipStats[0]['root'])) {
@@ -812,7 +764,7 @@ class ZipPackager
             }
         }
         ksort($zipMap, SORT_NATURAL);
-        $this->debugResults($zipMap, 'zipMap');
+        //$this->debugResults($zipMap, 'zipMap');
 
         $fsoMap = [];
         foreach ($fsoStats as $fsoStat) {
@@ -820,7 +772,7 @@ class ZipPackager
             $fsoMap[$nPath] = $fsoStat['crc32'];
         }
         ksort($fsoMap, SORT_NATURAL);
-        $this->debugResults($fsoMap, 'fsoMap');
+        //$this->debugResults($fsoMap, 'fsoMap');
 
 
         //--------------changed----------------------------
@@ -1020,8 +972,6 @@ class ZipPackager
         foreach ($stats as $k => $stat) {
             $stats[$k]['root'] = $rootFolder;
         }
-
-        $this->debugResults($stats, 'zipStats');
 
         $this->cache[$cacheKey] = $stats;
         return $stats;

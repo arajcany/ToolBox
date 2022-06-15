@@ -16,7 +16,7 @@ class ZipPackagerTest extends TestCase
 
         $this->now = date("Y-m-d H:i:s");
         $this->zp = new ZipPackager();
-        $this->zp->setVerbose(true);
+        //$this->zp->setVerbose(true);
         $this->tstHomeDir = str_replace("\\Utility", '', __DIR__) . DS;
         $this->tstTmpDir = __DIR__ . "\\..\\tmp\\";
     }
@@ -32,7 +32,7 @@ class ZipPackagerTest extends TestCase
         $expectedFilesCount = 11;
 
         $rawFileList = $this->zp->rawFileList($baseDir);
-        $this->assertEquals($expectedFilesCount, count($rawFileList));
+        $this->assertCount($expectedFilesCount, $rawFileList);
     }
 
     /**
@@ -250,48 +250,141 @@ class ZipPackagerTest extends TestCase
         $this->assertEquals($expectedEntryZero, $zipList[0]);
     }
 
-    public function testMakeZipFromZipList()
+    public function testExtractionsNormal()
     {
-        $baseDir = $this->tstHomeDir . "ZipMakerDirectoryStructureTest" . "/";
-        $rnd = mt_rand(111, 999);
-        $zipFilePath = $this->tstTmpDir . $rnd . ".zip";
-        $rawFileList = $this->zp->rawFileList($baseDir);
-        $zipList = $this->zp->convertRawFileListToZipList($rawFileList, $baseDir, "FooBar");
-        $result = $this->zp->makeZipFromZipList($zipFilePath, $zipList);
-        $this->assertTrue($result);
+        $zipLocation = $this->tstHomeDir . "ZipMakerDirectoryStructureTest.zip";
 
-        //extract keep root
-        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_keep/", false);
-        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_keep/FooBar/1 One"));
 
-        //extract eliminate root
-        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_eliminate/", true);
-        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_eliminate/1 One"));
-
+        //extraction 1
+        $expected = [
+            "folders" => [
+                0 => "ZipMakerDirectoryStructureTest/",
+                1 => "ZipMakerDirectoryStructureTest/1 One/",
+                2 => "ZipMakerDirectoryStructureTest/2 Two/",
+                3 => "ZipMakerDirectoryStructureTest/3 Three/",
+                4 => "ZipMakerDirectoryStructureTest/4 Empty Folder/",
+                5 => "ZipMakerDirectoryStructureTest/Sample/",
+                6 => "ZipMakerDirectoryStructureTest/vendor/",
+                7 => "ZipMakerDirectoryStructureTest/vendor/tests/",
+            ],
+            "files" => [
+                0 => "ZipMakerDirectoryStructureTest/1 One/empty.pdf",
+                1 => "ZipMakerDirectoryStructureTest/1 One/empty.txt",
+                2 => "ZipMakerDirectoryStructureTest/2 Two/empty.jpg",
+                3 => "ZipMakerDirectoryStructureTest/2 Two/empty.txt",
+                4 => "ZipMakerDirectoryStructureTest/3 Three/empty.indd",
+                5 => "ZipMakerDirectoryStructureTest/3 Three/empty.txt",
+                6 => "ZipMakerDirectoryStructureTest/config",
+                7 => "ZipMakerDirectoryStructureTest/Sample/empty.bat",
+                8 => "ZipMakerDirectoryStructureTest/Sample/empty.txt",
+                9 => "ZipMakerDirectoryStructureTest/Sample.txt",
+                10 => "ZipMakerDirectoryStructureTest/vendor/tests/test.txt",
+            ],
+        ];
+        $rndDir = mt_rand(1111, 9999);
+        $rndDir = $this->tstTmpDir . $rndDir . "/";
+        $eliminateRoot = false;
+        $toExtract = [];
+        $result = $this->zp->extractZip($zipLocation, $rndDir, $eliminateRoot, $toExtract);
+        $rawList = $this->zp->rawFileAndFolderList($rndDir);
+        $this->assertEquals($expected, $rawList);
+        $this->assertTrue($result['status']);
         //cleanup
-        unlink($zipFilePath);
-        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($this->tstTmpDir);
+        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
         $filesystem = new League\Flysystem\Filesystem($adapter);
-        $filesystem->deleteDirectory($rnd);
-    }
+        $filesystem->deleteDirectory('/');
 
-    public function testExtractZipEmptyFolder()
-    {
-        $zipFilePath = $this->tstHomeDir . "ZipMakerDirectoryStructureTest.zip";
-        $rnd = mt_rand(111, 999);
 
-        //extract keep root
-        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_keep/", false);
-        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_keep/ZipMakerDirectoryStructureTest/1 One"));
-
-        //extract eliminate root
-        $this->zp->extractZip($zipFilePath, $this->tstTmpDir . $rnd . "/root_eliminate/", true);
-        $this->assertTrue(is_dir($this->tstTmpDir . $rnd . "/root_eliminate/1 One"));
-
+        //extraction 2
+        $expected = [
+            "folders" => [
+                0 => "1 One/",
+                1 => "2 Two/",
+                2 => "3 Three/",
+                3 => "4 Empty Folder/",
+                4 => "Sample/",
+                5 => "vendor/",
+                6 => "vendor/tests/",
+            ],
+            "files" => [
+                0 => "1 One/empty.pdf",
+                1 => "1 One/empty.txt",
+                2 => "2 Two/empty.jpg",
+                3 => "2 Two/empty.txt",
+                4 => "3 Three/empty.indd",
+                5 => "3 Three/empty.txt",
+                6 => "config",
+                7 => "Sample/empty.bat",
+                8 => "Sample/empty.txt",
+                9 => "Sample.txt",
+                10 => "vendor/tests/test.txt",
+            ],
+        ];
+        $rndDir = mt_rand(1111, 9999);
+        $rndDir = $this->tstTmpDir . $rndDir . "/";
+        $eliminateRoot = true;
+        $toExtract = [];
+        $result = $this->zp->extractZip($zipLocation, $rndDir, $eliminateRoot, $toExtract);
+        $rawList = $this->zp->rawFileAndFolderList($rndDir);
+        $this->assertEquals($expected, $rawList);
+        $this->assertTrue($result['status']);
         //cleanup
-        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($this->tstTmpDir);
+        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
         $filesystem = new League\Flysystem\Filesystem($adapter);
-        $filesystem->deleteDirectory($rnd);
+        $filesystem->deleteDirectory('/');
+
+
+        //extraction 3
+        $expected = [
+            "folders" => [
+                0 => "ZipMakerDirectoryStructureTest/",
+                1 => "ZipMakerDirectoryStructureTest/4 Empty Folder/",
+            ],
+            "files" => [
+                0 => "ZipMakerDirectoryStructureTest/Sample.txt",
+            ],
+        ];
+        $rndDir = mt_rand(1111, 9999);
+        $rndDir = $this->tstTmpDir . $rndDir . "/";
+        $eliminateRoot = false;
+        $toExtract = [
+            "ZipMakerDirectoryStructureTest/4 Empty Folder/",
+            "ZipMakerDirectoryStructureTest/Sample.txt",
+        ];
+        $result = $this->zp->extractZip($zipLocation, $rndDir, $eliminateRoot, $toExtract);
+        $rawList = $this->zp->rawFileAndFolderList($rndDir);
+        $this->assertEquals($expected, $rawList);
+        $this->assertFalse($result['status']); //report delivers false positive as there is an extract list
+        //cleanup
+        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
+        $filesystem = new League\Flysystem\Filesystem($adapter);
+        $filesystem->deleteDirectory('/');
+
+
+        //extraction 4
+        $expected = [
+            "folders" => [
+                0 => "4 Empty Folder/",
+            ],
+            "files" => [
+                0 => "Sample.txt",
+            ],
+        ];
+        $rndDir = mt_rand(1111, 9999);
+        $rndDir = $this->tstTmpDir . $rndDir . "/";
+        $eliminateRoot = true;
+        $toExtract = [
+            "ZipMakerDirectoryStructureTest/4 Empty Folder/",
+            "ZipMakerDirectoryStructureTest/Sample.txt",
+        ];
+        $result = $this->zp->extractZip($zipLocation, $rndDir, $eliminateRoot, $toExtract);
+        $rawList = $this->zp->rawFileAndFolderList($rndDir);
+        $this->assertEquals($expected, $rawList);
+        $this->assertFalse($result['status']); //report delivers false positive as there is an extract list
+        //cleanup
+        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
+        $filesystem = new League\Flysystem\Filesystem($adapter);
+        $filesystem->deleteDirectory('/');
     }
 
 
