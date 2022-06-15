@@ -23,6 +23,7 @@ class ZipPackager
     private CLImate|false $io;
     private Progress|false $_progressBar = false;
     private bool $verbose = false;
+    private bool $debugResults = false; //send output to JSON file in tmp directory
     private array $cache = [];
 
     /**
@@ -44,6 +45,36 @@ class ZipPackager
     public function setVerbose(bool $verbose): void
     {
         $this->verbose = $verbose;
+    }
+
+    /**
+     * @param bool $debugResults
+     */
+    public function setDebugResults(bool $debugResults): void
+    {
+        $this->debugResults = $debugResults;
+    }
+
+    private function debugResults($results, string $filenameAppend = null): bool|int
+    {
+        if (!$this->debugResults) {
+            return false;
+        }
+
+        $tmpDir = __DIR__ . "/../tmp/";
+        if (!is_dir($tmpDir)) {
+            return false;
+        }
+
+        $filename = date("Ymd-His-") . substr(explode(".", microtime(true))[1], 0, 3);
+        if (!empty($filenameAppend)) {
+            $filename .= "-$filenameAppend.json";
+        } else {
+            $filename .= ".json";
+        }
+        $filename = $tmpDir . $filename;
+        $results = json_encode($results, JSON_PRETTY_PRINT);
+        return file_put_contents($filename, $results);
     }
 
     private function applyReplacements($message, $replacers)
@@ -339,7 +370,7 @@ class ZipPackager
             $listItemNormalised = $this->normalisePath($listItem);
             $keepListItemFlag = true;
 
-            if (str_contains($listItemNormalised, '/vendor/')) {
+            if (str_contains($listItemNormalised, '/vendor/') || TextFormatter::startsWith($listItemNormalised, 'vendor/')) {
                 foreach ($dirs as $dir) {
                     if (str_contains($listItemNormalised, $dir)) {
                         $keepListItemFlag = false;
@@ -450,7 +481,7 @@ class ZipPackager
         $zip->open($zipLocation, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         $totalCount = count($zipList);
-        $everyNFiles = 13; //every N files
+        $everyNFiles = 17; //every N files
 
         $counter = 0;
         foreach ($zipList as $file) {
@@ -505,61 +536,119 @@ class ZipPackager
 
 
     /**
+     * Determines what needs to be extracted based on missing files and change in CRC checksum.
+     * Hands the unzipping to $this->extractZip().
+     *
      * @param string $zipLocation
      * @param string $localFsoRootPath
      * @param bool $eliminateRoot
      * @return array
      */
-    public function extractZip(string $zipLocation, string $localFsoRootPath, bool $eliminateRoot = false): array
+    public function extractZipDifference(string $zipLocation, string $localFsoRootPath, bool $eliminateRoot = false): array
+    {
+        $diffReport = $this->getZipFsoDifference($zipLocation, $localFsoRootPath, $eliminateRoot);
+        $toExtract = array_merge($diffReport['zipChanged'], $diffReport['zipExtra']);
+
+        if (empty($toExtract)) {
+            $this->info("Nothing to extract, FSO and ZIP are in sync.");
+            $report = [
+                'status' => true,
+                'timer' => 0,
+                'folders' => [],
+                'files' => [],
+                'folder_names' => [],
+                'file_names' => [],
+                'root_folders' => [],
+                'extract_passed' => [],
+                'extract_failed' => [],
+                'crc_passed' => [],
+                'crc_failed' => [],
+            ];
+
+            foreach ($diffReport['fsoExtra'] as $extra) {
+                $file = ltrim(str_replace($localFsoRootPath, "", $extra), "\\/");
+                $path = TextFormatter::makeDirectoryTrailingForwardSlash(pathinfo($file, PATHINFO_DIRNAME));
+                if ($path !== './') {
+                    $report['folder_list_diff'][] = $path;
+                }
+                $report['file_list_diff'][] = $file;
+            }
+
+            $this->debugResults($report, 'extractZipDifference');
+            return $report;
+        }
+
+        return $this->extractZip($zipLocation, $localFsoRootPath, $eliminateRoot, $toExtract);
+    }
+
+
+    /**
+     * Zip Extraction workhorse. Simply extracts the zip to the given zip to the given location.
+     * Can optionally remover the root folder or just extract the given list entries.
+     *
+     * @param string $zipLocation
+     * @param string $localFsoRootPath
+     * @param bool $eliminateRoot only removes if ALL files/folders are in a common root folder
+     * @param null $toExtract array of entries to extract
+     * @return array
+     */
+    public function extractZip(string $zipLocation, string $localFsoRootPath, bool $eliminateRoot = false, $toExtract = null): array
     {
         $timeStart = microtime(true);
 
         $localFsoRootPath = TextFormatter::makeDirectoryTrailingBackwardSlash($localFsoRootPath);
         if (!is_dir($localFsoRootPath)) {
-            @mkdir($localFsoRootPath, 0777, true);
+            if (!@mkdir($localFsoRootPath, 0777, true)) {
+                return ['status' => false,];
+            }
         }
 
         $previousFileAndFolderList = $this->rawFileAndFolderList($localFsoRootPath);
         $previousFolderList = $previousFileAndFolderList['folders'];
         $previousFileList = $previousFileAndFolderList['files'];
 
-
-        $za = new ZipArchive();
-        $za->open($zipLocation);
-
-        $fileList = [];
+        //collect information that will be used in cross-checking and extraction
+        $entryStats = $this->zipStats($zipLocation, true);
+        $fileEntries = [];
         $fileNames = [];
-        $folderList = [];
+        $folderEntries = [];
         $folderNames = [];
         $roots = [];
-        for ($i = 0; $i < $za->numFiles; $i++) {
-            $entry = $za->statIndex($i);
-            $entry['name'] = $this->normalisePath($entry['name'], false);
-
-            if (TextFormatter::endsWith($entry['name'], "/")) {
-                $folderList[] = $entry;
-                $folderNames[] = $entry['name'];
-
-                //directory so always include first part
-                $entryParts = explode("/", $entry['name']);
-                if (isset($entryParts[0])) {
-                    $roots[] = $entryParts[0];
-                }
-            } else {
-                $fileList[] = $entry;
-                $fileNames[] = $entry['name'];
-
-                //could be a file in the root of zip so double check
-                $entryParts = explode("/", $entry['name']);
-                if (isset($entryParts[1])) {
-                    $roots[] = $entryParts[0];
+        $massExtractionGroups = [];
+        foreach ($entryStats as $k => $stat) {
+            if (!empty($toExtract)) {
+                if (!in_array($stat['name'], $toExtract)) {
+                    continue;
                 }
             }
+
+            if ($stat['type'] == 'folder') {
+                $folderEntries[] = $stat;
+            } elseif ($stat['type'] == 'file') {
+                $fileEntries[] = $stat;
+            }
+
+            if (!empty($stat['path_info_folder'])) {
+                $folderNames[] = $stat['path_info_folder'];
+            }
+
+            if (!empty($stat['path_info_file'])) {
+                $fileNames[] = $stat['path_info_file'];
+            }
+
+            if (!empty($stat['root'])) {
+                $roots[] = $stat['root'];
+            }
+
+            $massExtractionGroups[($k % 100)][] = $stat['name'];
         }
-
         $roots = array_values(array_unique($roots));
+        $folderNames = array_values(array_unique($folderNames));
+        $fileNames = array_values(array_unique($fileNames));
 
-        $this->out("Extracting Files.");
+        //perform the extraction
+        $za = new ZipArchive();
+        $za->open($zipLocation);
         if ($eliminateRoot && count($roots) === 1) {
             //special extraction to eliminate root folder
             $rootReplacement = TextFormatter::makeEndsWith($roots[0], "/");
@@ -571,24 +660,24 @@ class ZipPackager
             }
 
             //extract files
-            $everyNFiles = 33;
-            $totalCount = count($fileNames);
+            $everyNFiles = 17;
+            $totalCount = count($fileEntries);
             $counter = 0;
-            foreach ($fileNames as $fileName) {
+            foreach ($fileEntries as $fileEntry) {
                 $counter++;
                 if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
                     $message = $this->applyReplacements("Extracting {0} of {1} files.", [$counter, $totalCount]);
                     $this->progressBar($counter, $totalCount, $message);
                 }
 
-                $fp = $za->getStream($fileName);
+                $fp = $za->getStream($fileEntry['name']);
                 $contents = '';
                 if ($fp) {
                     while (!feof($fp)) {
                         $contents .= fread($fp, 1024);
                     }
                     fclose($fp);
-                    $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileName);
+                    $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileEntry['name_normalised']);
 
                     //test that dir exists
                     $bareDir = pathinfo($localPathFinal, PATHINFO_DIRNAME);
@@ -601,9 +690,20 @@ class ZipPackager
             }
         } else {
             //extract files as per structure in the zip
+            $this->info("Extracting files, please be patient this could take a while.");
             $rootReplacement = '';
             if (is_dir($localFsoRootPath)) {
-                $za->extractTo($localFsoRootPath);
+                $totalCount = count($folderEntries) + count($fileEntries);
+                $totalGroups = count($massExtractionGroups);
+                $groupCount = 0;
+                $counter = 0;
+                foreach ($massExtractionGroups as $groupOfNames) {
+                    $groupCount = $groupCount + count($groupOfNames);
+                    $counter++;
+                    $message = $this->applyReplacements("Extracting {0} of {1} files.", [$groupCount, $totalCount]);
+                    $this->progressBar($counter, $totalGroups, $message);
+                    $za->extractTo($localFsoRootPath, $groupOfNames);
+                }
             }
         }
 
@@ -611,8 +711,8 @@ class ZipPackager
         $report = [
             'status' => false,
             'timer' => 0,
-            'folders' => $folderList,
-            'files' => $fileList,
+            'folders' => $folderEntries,
+            'files' => $fileEntries,
             'folder_names' => $folderNames,
             'file_names' => $fileNames,
             'root_folders' => $roots,
@@ -622,20 +722,20 @@ class ZipPackager
             'crc_failed' => [],
         ];
 
-        foreach ($fileList as $file) {
-            $fullPath = $localFsoRootPath . str_replace($rootReplacement, '', $file['name']);
-            if (is_file($fullPath)) {
-                $report['extract_passed'][] = $file['name'];
+        foreach ($fileEntries as $fileEntry) {
+            $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileEntry['name_normalised']);
+            if (is_file($localPathFinal)) {
+                $report['extract_passed'][] = $fileEntry['name_normalised'];
 
                 //extraction may have happened but could be corrupt
-                $crcCheck = crc32(file_get_contents($fullPath));
-                if (strval($crcCheck) === strval($file['crc'])) {
-                    $report['crc_passed'][] = $file['name'];
+                $crcCheck = crc32(file_get_contents($localPathFinal));
+                if (strval($crcCheck) === strval($fileEntry['crc'])) {
+                    $report['crc_passed'][] = $fileEntry['name_normalised'];
                 } else {
-                    $report['crc_failed'][] = $file['name'];
+                    $report['crc_failed'][] = $fileEntry['name_normalised'];
                 }
             } else {
-                $report['extract_failed'][] = $file['name'];
+                $report['extract_failed'][] = $fileEntry['name_normalised'];
             }
         }
 
@@ -647,11 +747,110 @@ class ZipPackager
         $report['file_list_diff'] = array_values(array_diff($previousFileList, $currentFileList));
 
         //true is based on crc_passed extracted files === number of files in archive
-        if (count($report['crc_passed']) === count($report['file_names'])) {
+        if (count($report['crc_passed']) === count($fileEntries)) {
             $report['status'] = true;
         }
         $timerEnd = microtime(true);
         $report['timer'] = $timerEnd - $timeStart;
+
+        $this->debugResults($report, 'extractZip');
+
+        return $report;
+    }
+
+    /**
+     * Determines what needs to be extracted based on missing files and change in CRC checksum.
+     *
+     * @param string $zipLocation
+     * @param string $localFsoRootPath
+     * @param bool $eliminateRoot
+     * @return array
+     */
+    public function getZipFsoDifference(string $zipLocation, string $localFsoRootPath, bool $eliminateRoot = false): array
+    {
+        $options = [
+            'directory' => true,
+            'file' => true,
+            'sha1' => false,
+            'crc32' => true,
+            'mime' => false,
+            'size' => false
+        ];
+
+        $localFsoRootPath = TextFormatter::makeEndsWith($localFsoRootPath, "/");
+
+        $zipStats = $this->zipStats($zipLocation, true);
+        $fsoStats = $this->fileStats($localFsoRootPath, null, $options, true);
+
+        $zipRootFolder = '';
+        if (isset($zipStats[0]['root'])) {
+            $zipRootFolder = TextFormatter::makeEndsWith($zipStats[0]['root'], "/");
+        }
+
+        $report = [
+            'fsoChanged' => [], //files present in ZIP and FSO but crc32 do not match
+            'zipChanged' => [], //files present in ZIP and FSO but crc32 do not match
+
+            'fsoMissing' => [], //missing files in the FSO (same as extra in the ZIP)
+            'zipExtra' => [], //extra files on the ZIP (same as missing in the FSO)
+
+            'fsoExtra' => [], //extra files on the FSO (same as missing in the ZIP)
+            'zipMissing' => [], //missing files in the ZIP (same as extra in the FSO)
+        ];
+
+
+        $zipMap = [];
+        foreach ($zipStats as $zipStat) {
+            $nPath = $zipStat['name_normalised'];
+
+            if (!TextFormatter::endsWith($nPath, "/")) {
+                if ($eliminateRoot) {
+                    $nPath = str_replace($zipStat['root'], '', $nPath);
+                }
+                $nPath = ltrim($nPath, "/");
+                $zipMap[$nPath] = $zipStat;
+            }
+        }
+        ksort($zipMap, SORT_NATURAL);
+        $this->debugResults($zipMap, 'zipMap');
+
+        $fsoMap = [];
+        foreach ($fsoStats as $fsoStat) {
+            $nPath = $this->normalisePath($fsoStat['file'], false);
+            $fsoMap[$nPath] = $fsoStat['crc32'];
+        }
+        ksort($fsoMap, SORT_NATURAL);
+        $this->debugResults($fsoMap, 'fsoMap');
+
+
+        //--------------changed----------------------------
+        foreach ($zipMap as $itemName => $itemStat) {
+            if (isset($fsoMap[$itemName])) {
+                if ($itemStat['crc'] !== $fsoMap[$itemName]) {
+                    $report['fsoChanged'][] = $localFsoRootPath . $itemName;
+                    $report['zipChanged'][] = $itemStat['name'];
+                }
+            }
+        }
+
+        //--------------zipExtra/fsoMissing----------------------------
+        foreach ($zipMap as $itemName => $itemStat) {
+            if (!isset($fsoMap[$itemName])) {
+                $report['fsoMissing'][] = $localFsoRootPath . $itemName;
+                $report['zipExtra'][] = $itemStat['name'];
+            }
+        }
+
+        //--------------fsoExtra/zipMissing----------------------------
+        foreach ($fsoMap as $itemName => $itemStat) {
+            if (!isset($zipMap[$itemName])) {
+                $report['zipMissing'][] = $zipRootFolder . $itemName;
+                $report['fsoExtra'][] = $localFsoRootPath . $itemName;
+            }
+        }
+
+
+        $this->debugResults($report, 'getZipFsoDifference');
 
         return $report;
     }
@@ -663,9 +862,10 @@ class ZipPackager
      * @param string $baseDir base directory of files - will read all files if no $rawList supplied
      * @param null $rawList read only these files from the base directory
      * @param array $options type of file information to provide
+     * @param bool $useCache
      * @return array
      */
-    public function fileStats($baseDir, $rawList = null, array $options = [], $useCache = false)
+    public function fileStats(string $baseDir, $rawList = null, array $options = [], bool $useCache = false): array
     {
         $cacheKey = sha1(json_encode([$baseDir, $rawList, $options]));
         if (isset($this->cache[$cacheKey]) && $useCache === true) {
@@ -696,7 +896,7 @@ class ZipPackager
             $rawList = $this->rawFileList($baseDir);
         }
 
-        $everyNFiles = 33;
+        $everyNFiles = 17;
         $totalCount = count($rawList);
 
         $stats = [];
@@ -736,7 +936,7 @@ class ZipPackager
 
             $counter++;
             if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                $message = $this->applyReplacements("Analysed {0} of {1} files.", [$counter, $totalCount]);
+                $message = $this->applyReplacements("Analysed {0} of {1} files in FSO.", [$counter, $totalCount]);
                 $this->progressBar($counter, $totalCount, $message);
             }
         }
@@ -749,12 +949,13 @@ class ZipPackager
      * Get information about files inside a zip file.
      * Can use caching to speed up sequential reads.
      *
-     * @param string $zipLocation base directory of files - will read all files if no $rawList supplied
+     * @param string $zipLocation
+     * @param bool $useCache
      * @return array
      */
-    public function zipStats($zipLocation, $useCache = false)
+    public function zipStats(string $zipLocation, bool $useCache = false): array
     {
-        $cacheKey = sha1(json_encode([$zipLocation]));
+        $cacheKey = sha1_file($zipLocation);
         if (isset($this->cache[$cacheKey]) && $useCache === true) {
             return $this->cache[$cacheKey];
         }
@@ -764,26 +965,63 @@ class ZipPackager
         }
 
         $stats = [];
+        $roots = [];
         $counter = 0;
 
         $za = new ZipArchive();
         $za->open($zipLocation);
 
-        $everyNFiles = 33;
+        $everyNFiles = 17;
         $totalCount = $za->numFiles;
 
         for ($i = 0; $i < $za->numFiles; $i++) {
             $entry = $za->statIndex($i);
-            $entry['name'] = $this->normalisePath($entry['name'], false);
+            $entry['name_normalised'] = $this->normalisePath($entry['name'], false);
+
+            if (TextFormatter::endsWith($entry['name_normalised'], "/")) {
+                //this is a directory or sub-directory so add the first part as the root folder
+                $roots[] = explode("/", $entry['name_normalised'])[0];
+                $entry['type'] = 'folder';
+                $entry['path_info_file'] = '';
+                $entry['path_info_folder'] = $entry['name_normalised'];
+            } else {
+                //could be a file in the root of zip so double check before adding first part as the root folder
+                $entryParts = explode("/", $entry['name_normalised']);
+                if (isset($entryParts[1])) {
+                    //this is a folder/file path
+                    $roots[] = $entryParts[0];
+                    $entry['path_info_file'] = pathinfo($entry['name_normalised'], PATHINFO_BASENAME);
+                    $entry['path_info_folder'] = pathinfo($entry['name_normalised'], PATHINFO_DIRNAME) . '/';
+                } else {
+                    //just a file in the top level of the zip
+                    $roots[] = '';
+                    $entry['path_info_file'] = pathinfo($entry['name_normalised'], PATHINFO_BASENAME);
+                    $entry['path_info_folder'] = '';
+                }
+                $entry['type'] = 'file';
+            }
 
             $stats[] = $entry;
 
             $counter++;
             if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                $message = $this->applyReplacements("Analysed {0} of {1} files in zip.", [$counter, $totalCount]);
+                $message = $this->applyReplacements("Analysed {0} of {1} entries in Zip.", [$counter, $totalCount]);
                 $this->progressBar($counter, $totalCount, $message);
             }
         }
+
+        //determine if there really is a single root folder
+        $roots = array_values(array_unique(array_filter($roots)));
+        if (count($roots) === 1) {
+            $rootFolder = $roots[0];
+        } else {
+            $rootFolder = '';
+        }
+        foreach ($stats as $k => $stat) {
+            $stats[$k]['root'] = $rootFolder;
+        }
+
+        $this->debugResults($stats, 'zipStats');
 
         $this->cache[$cacheKey] = $stats;
         return $stats;
