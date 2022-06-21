@@ -586,7 +586,7 @@ class ZipPackager
 
         $localFsoRootPath = TextFormatter::makeDirectoryTrailingBackwardSlash($localFsoRootPath);
         if (!is_dir($localFsoRootPath)) {
-            if (!@mkdir($localFsoRootPath, 0777, true)) {
+            if (!$this->mkdir($localFsoRootPath, 0777, true)) {
                 return ['status' => false,];
             }
         }
@@ -640,7 +640,9 @@ class ZipPackager
             //make directories ($folderNames could be empty if the maker of the ZIP did not explicitly put directories into the zip)
             foreach ($folderNames as $folderName) {
                 $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $folderName);
-                @mkdir($localPathFinal, 0777, true);
+                if (!is_dir($localPathFinal)) {
+                    $this->mkdir($localPathFinal, 0777, true);
+                }
             }
 
             //extract files
@@ -666,7 +668,7 @@ class ZipPackager
                     //test that dir exists
                     $bareDir = pathinfo($localPathFinal, PATHINFO_DIRNAME);
                     if (!is_dir($bareDir)) {
-                        @mkdir($bareDir, 0777, true);
+                        $this->mkdir($bareDir, 0777, true);
                     }
 
                     file_put_contents($localPathFinal, $contents);
@@ -975,6 +977,26 @@ class ZipPackager
 
         $this->cache[$cacheKey] = $stats;
         return $stats;
+    }
+
+    /**
+     * Wrapper function with better error suppression.
+     *
+     * @param string $directory
+     * @param int $permissions
+     * @param bool $recursive
+     * @param $context
+     * @return bool
+     */
+    private function mkdir(string $directory, int $permissions = 0777, bool $recursive = false, $context = null)
+    {
+        set_error_handler(function () {
+            //do nothing
+        });
+        $result = @mkdir($directory, $permissions, $recursive, $context);
+        restore_error_handler();
+
+        return $result;
     }
 
 }
