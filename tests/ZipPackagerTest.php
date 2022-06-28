@@ -290,7 +290,7 @@ class ZipPackagerTest extends TestCase
         $this->assertEquals($expected, $rawList);
         $this->assertTrue($result['status']);
         //cleanup
-        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
+        $adapter = new arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter($rndDir);
         $filesystem = new League\Flysystem\Filesystem($adapter);
         $filesystem->deleteDirectory('/');
 
@@ -329,7 +329,7 @@ class ZipPackagerTest extends TestCase
         $this->assertEquals($expected, $rawList);
         $this->assertTrue($result['status']);
         //cleanup
-        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
+        $adapter = new arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter($rndDir);
         $filesystem = new League\Flysystem\Filesystem($adapter);
         $filesystem->deleteDirectory('/');
 
@@ -356,7 +356,7 @@ class ZipPackagerTest extends TestCase
         $this->assertEquals($expected, $rawList);
         $this->assertFalse($result['status']); //report delivers false positive as there is an extract list
         //cleanup
-        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
+        $adapter = new arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter($rndDir);
         $filesystem = new League\Flysystem\Filesystem($adapter);
         $filesystem->deleteDirectory('/');
 
@@ -382,7 +382,7 @@ class ZipPackagerTest extends TestCase
         $this->assertEquals($expected, $rawList);
         $this->assertFalse($result['status']); //report delivers false positive as there is an extract list
         //cleanup
-        $adapter = new League\Flysystem\Local\LocalFilesystemAdapter($rndDir);
+        $adapter = new arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter($rndDir);
         $filesystem = new League\Flysystem\Filesystem($adapter);
         $filesystem->deleteDirectory('/');
     }
