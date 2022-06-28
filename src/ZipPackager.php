@@ -9,7 +9,7 @@ use League\CLImate\TerminalObject\Dynamic\Progress;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\Filesystem;
-use League\Flysystem\Local\LocalFilesystemAdapter;
+use arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter;
 use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use ZipArchive;
 
