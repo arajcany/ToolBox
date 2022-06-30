@@ -87,7 +87,7 @@ class TextFormatter
      */
     public static function makeDirectoryTrailingForwardSlash(string $string = ""): string
     {
-        $string = trim($string, "\\");
+        $string = rtrim($string, "\\");
         return self::makeEndsWith($string, "/");
     }
 
@@ -101,7 +101,7 @@ class TextFormatter
      */
     public static function makeDirectoryTrailingBackwardSlash(string $string = ""): string
     {
-        $string = trim($string, "/");
+        $string = rtrim($string, "/");
         return self::makeEndsWith($string, "\\");
     }
 }

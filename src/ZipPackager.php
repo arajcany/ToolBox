@@ -494,13 +494,17 @@ class ZipPackager
         foreach ($zipList as $file) {
             if (is_array($file)) {
                 if (isset($file['external']) && isset($file['internal'])) {
-                    $result = $zip->addFile($file['external'], $file['internal']);
-                    if ($result) {
-                        $counter++;
-                        if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                            $message = $this->applyReplacements("Zipped {0} of {1} files.", [$counter, $totalCount]);
-                            $this->progressBar($counter, $totalCount, $message);
+                    if (is_file($file['external'])) {
+                        $result = $zip->addFile($file['external'], $file['internal']);
+                        if ($result) {
+                            $counter++;
+                            if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
+                                $message = $this->applyReplacements("Zipped {0} of {1} files.", [$counter, $totalCount]);
+                                $this->progressBar($counter, $totalCount, $message);
+                            }
                         }
+                    } else {
+                        $this->error("Could not find the file {0}", $file['external']);
                     }
                 }
             }
