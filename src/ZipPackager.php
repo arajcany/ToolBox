@@ -144,7 +144,7 @@ class ZipPackager
         }
 
         $factor = ($total / 100);
-        $currentFixed = max(100, intval(ceil($current / $factor)));
+        $currentFixed = min(100, intval(ceil($current / $factor)));
         $totalFixed = 100;
         if (empty($this->_progressBar)) {
             $this->io->out('');
