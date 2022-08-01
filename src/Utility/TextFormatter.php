@@ -104,4 +104,34 @@ class TextFormatter
         $string = rtrim($string, "/");
         return self::makeEndsWith($string, "\\");
     }
+
+    /**
+     * Remove repeating delimiters.
+     *
+     * @param $string
+     * @param string[] $delimList
+     * @return string
+     */
+    public static function removeRepeatingDelimiters($string, array $delimList = [',', '-', '_', '|']): string
+    {
+        $currentStringLength = strlen($string);
+        $newStringLength = 0;
+
+        while ($currentStringLength !== $newStringLength) {
+            $currentStringLength = strlen($string);
+            foreach ($delimList as $delim) {
+                $in = "{$delim}{$delim}";
+                $out = "{$delim}";
+                $string = str_replace($in, $out, $string);
+
+                $in = "{$delim} {$delim} ";
+                $out = "{$delim} ";
+                $string = str_replace($in, $out, $string);
+
+                $newStringLength = strlen($string);
+            }
+        }
+
+        return $string;
+    }
 }
