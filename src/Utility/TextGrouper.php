@@ -9,15 +9,16 @@ class TextGrouper
      * @param array $listOfItems
      * @param bool $ignorePureMatches
      * @param bool $groupsMustOutweighSingles
+     * @param int $lowerMatchLimit
      * @return array
      */
-    public static function bySimilarity(array $listOfItems, bool $ignorePureMatches = true, bool $groupsMustOutweighSingles = true): array
+    public static function bySimilarity(array $listOfItems, bool $ignorePureMatches = true, int $lowerMatchLimit = 95, bool $groupsMustOutweighSingles = true): array
     {
         //to be considered a group you need at least N entries...
         $groupEntriesTriggerThreshold = 2;
 
         //are they really that similar if the match is below N%...?
-        $lowerMatchLimit = 85;
+        $lowerMatchLimit = intval($lowerMatchLimit);
 
         if ($ignorePureMatches) {
             $decrementingRange = range(99, $lowerMatchLimit);
