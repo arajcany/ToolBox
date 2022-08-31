@@ -22,6 +22,7 @@ class ZipPackager
 {
     private CLImate|false $io;
     private Progress|false $_progressBar = false;
+    private bool $progressiveSaving = true;
     private bool $verbose = false;
     private bool $debugResults = false; //send output to JSON file in tmp directory
     private array $cache = [];
@@ -53,6 +54,18 @@ class ZipPackager
     public function setDebugResults(bool $debugResults): void
     {
         $this->debugResults = $debugResults;
+    }
+
+    /**
+     * Progressive saving works by closing and reopening the zip at
+     * specified intervals. It speeds up the zip operation by avoiding
+     * a single long closing time at the end of the zip operation.
+     *
+     * @param bool $progressiveSaving
+     */
+    public function setProgressiveSaving(bool $progressiveSaving): void
+    {
+        $this->progressiveSaving = $progressiveSaving;
     }
 
     private function debugResults($results, string $filenameAppend = null): bool|int
@@ -488,7 +501,8 @@ class ZipPackager
         $zip->open($zipLocation, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         $totalCount = count($zipList);
-        $everyNFiles = 17; //every N files
+        $everyNFiles = 17; //every N files update the progress bar
+        $progressiveSaveEvery = intval(ceil($totalCount / 7)); //every N files close and reopen the zip - aids with the final closign speed
 
         $counter = 0;
         foreach ($zipList as $file) {
@@ -501,6 +515,17 @@ class ZipPackager
                             if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
                                 $message = $this->applyReplacements("Zipped {0} of {1} files.", [$counter, $totalCount]);
                                 $this->progressBar($counter, $totalCount, $message);
+                            }
+
+                            if ($this->progressiveSaving) {
+                                if (($counter % $progressiveSaveEvery === 0) && $counter !== $totalCount) {
+                                    if ($zip->close()) {
+                                        $zip->open($zipLocation);
+                                    } else {
+                                        $this->error("Failed to progressively save the Zip file.");
+                                        return false;
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -516,11 +541,11 @@ class ZipPackager
                 $this->out("Zipped {0} files.", $totalCount);
                 return true;
             } else {
-                $this->out("Only zipped {0} of {1} files", $counter, $totalCount);
+                $this->error("Only zipped {0} of {1} files", $counter, $totalCount);
                 return false;
             }
         } else {
-            $this->out("Failed to close Zip file.");
+            $this->error("Failed to close Zip file.");
             return false;
         }
     }
