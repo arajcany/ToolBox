@@ -179,9 +179,9 @@ class ZipPackager
      * @param string $localFsoRootPath
      * @return array
      */
-    public function rawFileList(string $localFsoRootPath): array
+    public function rawFileList(string $localFsoRootPath, $recursive = true): array
     {
-        return $this->rawList($localFsoRootPath, 'file');
+        return $this->rawList($localFsoRootPath, 'file', $recursive);
     }
 
     /**
@@ -190,9 +190,9 @@ class ZipPackager
      * @param string $localFsoRootPath
      * @return array
      */
-    public function rawFolderList(string $localFsoRootPath): array
+    public function rawFolderList(string $localFsoRootPath, $recursive = true): array
     {
-        return $this->rawList($localFsoRootPath, 'folder');
+        return $this->rawList($localFsoRootPath, 'folder', $recursive);
     }
 
     /**
@@ -201,9 +201,9 @@ class ZipPackager
      * @param string $localFsoRootPath
      * @return array multidimensional array ['folders'=>[], 'files'=>[]]
      */
-    public function rawFileAndFolderList(string $localFsoRootPath): array
+    public function rawFileAndFolderList(string $localFsoRootPath, $recursive = true): array
     {
-        return $this->rawList($localFsoRootPath, 'both');
+        return $this->rawList($localFsoRootPath, 'both', $recursive);
     }
 
     /**
@@ -217,7 +217,7 @@ class ZipPackager
      * @param string $mode
      * @return array
      */
-    private function rawList(string $localFsoRootPath, string $mode): array
+    private function rawList(string $localFsoRootPath, string $mode, $recursive = true): array
     {
         /**
          * @var FileAttributes|DirectoryAttributes $content
@@ -228,7 +228,7 @@ class ZipPackager
         $rawFileList = [];
         $rawFolderList = [];
         try {
-            $contents = $localFilesystem->listContents('', true);
+            $contents = $localFilesystem->listContents('', $recursive);
         } catch (\Throwable $exception) {
             return [];
         }
