@@ -861,7 +861,8 @@ class ZipPackager
             'sha1' => true,
             'crc32' => true,
             'mime' => true,
-            'size' => true
+            'size' => true,
+            'contents' => false, //warning, this could get BIG!
         ];
         $options = array_merge($defaultOptions, $options);
 
@@ -914,6 +915,14 @@ class ZipPackager
                     $stats[$counter]['size'] = strlen($contents);
                 } else {
                     $stats[$counter]['size'] = filesize($fullPath);
+                }
+            }
+
+            if ($options['contents']) {
+                if ($contents) {
+                    $stats[$counter]['contents'] = $contents;
+                } else {
+                    $stats[$counter]['contents'] = null;
                 }
             }
 
