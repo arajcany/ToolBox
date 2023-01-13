@@ -106,6 +106,27 @@ class TextFormatter
     }
 
     /**
+     * Make a string end with either a backward or forward trailing slash (i.e. for directory)
+     * Will look at the string and determine the most common slash and then use that.
+     * Replace or add as necessary.
+     *
+     * @param string $string
+     * @return string
+     * @internal param string $startsWith
+     */
+    public static function makeDirectoryTrailingSmartSlash(string $string = ""): string
+    {
+        $backCount = substr_count($string, "\\");
+        $forwardCount = substr_count($string, "/");
+
+        if ($backCount >= $forwardCount) {
+            return self::makeDirectoryTrailingBackwardSlash($string);
+        } else {
+            return self::makeDirectoryTrailingForwardSlash($string);
+        }
+    }
+
+    /**
      * Remove repeating delimiters.
      *
      * @param $string
