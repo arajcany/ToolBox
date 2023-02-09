@@ -788,7 +788,9 @@ class ZipPackager
 
             if (!TextFormatter::endsWith($nPath, "/")) {
                 if ($eliminateRoot) {
-                    $nPath = str_replace($zipStat['root'], '', $nPath);
+                    if (TextFormatter::startsWith($nPath, $zipStat['root'])) {
+                        $nPath = substr_replace($nPath, '', 0, strlen($zipStat['root']));
+                    }
                 }
                 $nPath = ltrim($nPath, "/");
                 $zipMap[$nPath] = $zipStat;
