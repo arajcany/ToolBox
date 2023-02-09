@@ -668,7 +668,12 @@ class ZipPackager
 
             //make directories ($folderNames could be empty if the maker of the ZIP did not explicitly put directories into the zip)
             foreach ($folderNames as $folderName) {
-                $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $folderName);
+                if (TextFormatter::startsWith($folderName, $rootReplacement)) {
+                    $folderNameNoRoot = substr_replace($folderName, '', 0, strlen($rootReplacement));
+                } else {
+                    $folderNameNoRoot = $folderName;
+                }
+                $localPathFinal = $localFsoRootPath . $folderNameNoRoot;
                 if (!is_dir($localPathFinal)) {
                     $this->mkdir($localPathFinal, 0777, true);
                 }
@@ -692,7 +697,12 @@ class ZipPackager
                         $contents .= fread($fp, 1024);
                     }
                     fclose($fp);
-                    $localPathFinal = $localFsoRootPath . str_replace($rootReplacement, "", $fileEntry['name_normalised']);
+                    if (TextFormatter::startsWith($fileEntry['name_normalised'], $rootReplacement)) {
+                        $fileEntryNoRoot = substr_replace($fileEntry['name_normalised'], '', 0, strlen($rootReplacement));
+                    } else {
+                        $fileEntryNoRoot = $fileEntry['name_normalised'];
+                    }
+                    $localPathFinal = $localFsoRootPath . $fileEntryNoRoot;
 
                     //test that dir exists
                     $bareDir = pathinfo($localPathFinal, PATHINFO_DIRNAME);
