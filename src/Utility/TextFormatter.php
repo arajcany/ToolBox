@@ -65,6 +65,41 @@ class TextFormatter
     }
 
     /**
+     * Opposite of makeStartsWith().
+     * If a string starts with the passed in needle, remove it from the beginning of a string.
+     *
+     * @param string $string
+     * @param string $startsWith
+     * @return string
+     */
+    public static function unmakeStartsWith(string $string = "", string $startsWith = ""): string
+    {
+        if (self::startsWith($string, $startsWith) === true) {
+            return substr_replace($string, '', 0, strlen($startsWith));
+        }
+
+        return $string;
+    }
+
+    /**
+     * Opposite of makeEndsWith().
+     * If a string ends with the passed in needle, remove it from the end of a string.
+     *
+     * @param string $string
+     * @param string $endsWith
+     * @return string
+     * @internal param string $startsWith
+     */
+    public static function unmakeEndsWith(string $string = "", string $endsWith = ""): string
+    {
+        if (self::endsWith($string, $endsWith) === true) {
+            return substr_replace($string, '', -strlen($endsWith), strlen($endsWith));
+        }
+
+        return $string;
+    }
+
+    /**
      * Make a string start/end with the passed in needles - if not already
      *
      * @param string $string
