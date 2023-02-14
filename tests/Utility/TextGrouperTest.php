@@ -33,7 +33,7 @@ class TextGrouperTest extends TestCase
             ['h' => 'list'],
             ['i' => 'items'],
         ];
-        $actual = TextGrouper::bySimilarity($input, true, true);
+        $actual = TextGrouper::bySimilarity($input, true, 95);
         $this->assertEquals($expected, $actual);
     }
 
@@ -53,31 +53,39 @@ class TextGrouperTest extends TestCase
         ];
 
         $expected = [
-            ['a' => 'file_9_bar_02.png',
+            [
+                'a' => 'file_9_bar_02.png',
                 'c' => 'file_9_bar_12.png',
                 'e' => 'file_9_bar_04.png',
-                'i' => 'file_9_bar_05.png'],
-            ['b' => 'file_0_a_002.png',
+                'i' => 'file_9_bar_05.png'
+            ],
+            [
+                'b' => 'file_0_a_002.png',
                 'd' => 'file_0_a_001.png',
                 'g' => 'file_0_a_003.png',
-                'h' => 'file_0_a_004.png'],
-            ['f' => 'unrelated_file_001.png'],
+                'h' => 'file_0_a_004.png'
+            ],
+            [
+                'f' => 'unrelated_file_001.png'
+            ],
         ];
-        $actual = TextGrouper::bySimilarity($input, true, true);
+        $actual = TextGrouper::bySimilarity($input, true, 80, true);
         $this->assertEquals($expected, $actual);
 
         $expected = [
-            ['a' => 'file_9_bar_02.png',
+            [
+                'a' => 'file_9_bar_02.png',
                 'c' => 'file_9_bar_12.png',
                 'e' => 'file_9_bar_04.png',
-                'i' => 'file_9_bar_05.png'],
+                'i' => 'file_9_bar_05.png'
+            ],
             ['b' => 'file_0_a_002.png'],
             ['d' => 'file_0_a_001.png'],
             ['f' => 'unrelated_file_001.png'],
             ['g' => 'file_0_a_003.png'],
             ['h' => 'file_0_a_004.png'],
         ];
-        $actual = TextGrouper::bySimilarity($input, true, false);
+        $actual = TextGrouper::bySimilarity($input, true, 80, false);
         $this->assertEquals($expected, $actual);
     }
 
@@ -95,15 +103,17 @@ class TextGrouperTest extends TestCase
         ];
 
         $expected = [
-            [0 => 'a1',
-                1 => 'a1'],
+            [
+                0 => 'a1',
+                1 => 'a1'
+            ],
             [2 => 'a2'],
             [3 => 'a3'],
             [4 => 'b1'],
             [5 => 'b2'],
             [6 => 'b3'],
         ];
-        $actual = TextGrouper::bySimilarity($input, true, true);
+        $actual = TextGrouper::bySimilarity($input, true, 80, false);
         $this->assertEquals($expected, $actual);
 
     }

@@ -6,13 +6,13 @@ namespace arajcany\ToolBox\Utility;
 class TextGrouper
 {
     /**
-     * @param array $listOfItems
-     * @param bool $ignorePureMatches
-     * @param bool $groupsMustOutweighSingles
-     * @param int $lowerMatchLimit
+     * @param array $listOfItems an array of items to be grouped
+     * @param bool $ignorePureMatches if true range is from 99% match to $lowerMatchLimit. if false range is from 100% match to  $lowerMatchLimit.
+     * @param int $lowerMatchLimit lowest % of similarity you are willing to accept e.g. if below 80% are they really a match?
+     * @param bool $groupsCountMustOutweighSinglesCount if true, keep looping till most of the list of items have been put into a group
      * @return array
      */
-    public static function bySimilarity(array $listOfItems, bool $ignorePureMatches = true, int $lowerMatchLimit = 95, bool $groupsMustOutweighSingles = true): array
+    public static function bySimilarity(array $listOfItems, bool $ignorePureMatches = true, int $lowerMatchLimit = 95, bool $groupsCountMustOutweighSinglesCount = true): array
     {
         //to be considered a group you need at least N entries...
         $groupEntriesTriggerThreshold = 2;
@@ -87,7 +87,7 @@ class TextGrouper
             }
 
             if ($groupEntriesTrigger >= $groupEntriesTriggerThreshold) {
-                if ($groupsMustOutweighSingles) {
+                if ($groupsCountMustOutweighSinglesCount) {
                     $countSingles = 0;
                     $countMulti = 0;
                     foreach ($groups as $group) {

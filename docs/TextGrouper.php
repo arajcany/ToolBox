@@ -11,20 +11,23 @@ $groups = TextGrouper::bySimilarity($desc, true, 95, true);
 file_put_contents(__DIR__ . "/../tmp/unrelated.json", json_encode($groups, JSON_PRETTY_PRINT));
 $e = microtime(true);
 dump($e - $s);
+dump($groups);
 
 $s = microtime(true);
-$desc = getDescriptionList();
-$groups = TextGrouper::bySimilarity($desc, true, 95, true);
-file_put_contents(__DIR__ . "/../tmp/descriptions.json", json_encode($groups, JSON_PRETTY_PRINT));
+$names = getFileNames();
+$groups = TextGrouper::bySimilarity($names, true, 80, true);
+file_put_contents(__DIR__ . "/../tmp/filenamesA.json", json_encode($groups, JSON_PRETTY_PRINT));
 $e = microtime(true);
 dump($e - $s);
+dump($groups);
 
 $s = microtime(true);
-$names = getNames();
-$groups = TextGrouper::bySimilarity($names, true, 95, false);
-file_put_contents(__DIR__ . "/../tmp/names.json", json_encode($groups, JSON_PRETTY_PRINT));
+$names = getFileNames();
+$groups = TextGrouper::bySimilarity($names, true, 80, false);
+file_put_contents(__DIR__ . "/../tmp/filenamesB.json", json_encode($groups, JSON_PRETTY_PRINT));
 $e = microtime(true);
 dump($e - $s);
+dump($groups);
 
 
 function unrelatedList()
@@ -43,11 +46,10 @@ function unrelatedList()
 }
 
 
-function getNames()
+function getFileNames()
 {
     return [
         'a' => 'file_9_bar_02.png',
-        'aa' => 'file_9_bar_02.png',
         'b' => 'file_0_a_002.png',
         'c' => 'file_9_bar_12.png',
         'd' => 'file_0_a_001.png',
