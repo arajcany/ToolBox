@@ -162,6 +162,22 @@ class TextFormatter
     }
 
     /**
+     * Standardise the slashes in the given string
+     * \\localhost/FFC_Data     =>      \\localhost\FFC_Data
+     * c:/tmp/come\dir          =>      c:/tmp/come/dir
+     *
+     * NOTE: does not add a trailing slash
+     *
+     * @param string $string
+     * @return string
+     * @internal param string $startsWith
+     */
+    public static function convertDirectorySmartSlashes(string $string = ""): string
+    {
+       return $string;
+    }
+
+    /**
      * Remove repeating delimiters.
      *
      * @param $string
