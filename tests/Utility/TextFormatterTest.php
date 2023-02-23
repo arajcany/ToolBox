@@ -147,4 +147,32 @@ class TextFormatterTest extends TestCase
         $actual = TextFormatter::endsWith($string, 'z');
         $this->assertEquals($expected, $actual);
     }
+
+    public function testNormaliseSlashes()
+    {
+        //first mode
+        $tests = [
+            '/some/dir\\with/slashes/' => '/some/dir/with/slashes/',
+            '/some\\dir\\with\\slashes\\' => '/some/dir/with/slashes/',
+            'c:\\some\\dir\\with/slashes\\' => 'c:\\some\\dir\\with\\slashes\\',
+            '\\some\\dir/with/slashes\\' => '\\some\\dir\\with\\slashes\\',
+        ];
+        foreach ($tests as $input => $expected) {
+            $actual = TextFormatter::normaliseSlashes($input, 'first');
+            $this->assertEquals($expected, $actual);
+        }
+
+        //count mode
+        $tests = [
+            '/some/dir\\with/slashes/' => '/some/dir/with/slashes/',
+            '/some\\dir\\with\\slashes\\' => '\\some\\dir\\with\\slashes\\',
+            'c:\\some\\dir\\with/slashes\\' => 'c:\\some\\dir\\with\\slashes\\',
+            '\\some/dir/with/slashes\\equal\\' => '\\some\\dir\\with\\slashes\\equal\\',
+        ];
+        foreach ($tests as $input => $expected) {
+            $actual = TextFormatter::normaliseSlashes($input, 'count');
+            $this->assertEquals($expected, $actual);
+        }
+
+    }
 }

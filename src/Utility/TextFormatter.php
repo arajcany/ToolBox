@@ -162,19 +162,53 @@ class TextFormatter
     }
 
     /**
-     * Standardise the slashes in the given string
+     * Normalise the slashes in the given string
      * \\localhost/FFC_Data     =>      \\localhost\FFC_Data
-     * c:/tmp/come\dir          =>      c:/tmp/come/dir
+     * c:\tmp\come/dir          =>      c:\tmp\come\dir
      *
      * NOTE: does not add a trailing slash
      *
      * @param string $string
+     * @param string $mode
+     * first=> normalise based on first encountered slash type.
+     * count=> normalise based on most common slash type. If count is the same, fall back to 'first' mode.
      * @return string
      * @internal param string $startsWith
      */
-    public static function convertDirectorySmartSlashes(string $string = ""): string
+    public static function normaliseSlashes(string $string = "", string $mode = 'first'): string
     {
-       return $string;
+
+        if (strtolower($mode) === 'count') {
+            $backCount = substr_count($string, "\\");
+            $forwardCount = substr_count($string, "/");
+
+            if ($backCount > $forwardCount) {
+                return str_replace(['\\', '/'], '\\', $string);
+            } elseif ($backCount < $forwardCount) {
+                return str_replace(['\\', '/'], '/', $string);
+            } else {
+                //same number of each slash type, fall back to first
+                $mode = 'first';
+            }
+        }
+
+        if (strtolower($mode) === 'first') {
+            $firstSlashType = null;
+            foreach (str_split($string) as $character) {
+                if ($character === "\\" || $character === "/") {
+                    $firstSlashType = $character;
+                    break;
+                }
+            }
+
+            if (!$firstSlashType) {
+                return $string;
+            }
+
+            return str_replace(['\\', '/'], $firstSlashType, $string);
+        }
+
+        return $string;
     }
 
     /**
