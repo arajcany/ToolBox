@@ -175,4 +175,82 @@ class TextFormatterTest extends TestCase
         }
 
     }
+
+    public function testStripBetweenTags()
+    {
+        $startTag = '<--start';
+        $endTag = 'end-->';
+
+        //basic strip
+        $string = "Hello<--start all of this will be removed end-->World";
+        $expect = "Hello                                           World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //basic strip twice
+        $string = "Hello<--start removed end-->World  Hello<--start removed end-->World";
+        $expect = "Hello                       World  Hello                       World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //nested tags will work
+        $string = "Hello<--start <--start <--start removed end--> end--> end-->World";
+        $expect = "Hello                                                       World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //balanced nested tags will work
+        $string = "Hello<--start <--start removed end-->  <--start removed end--> end-->World";
+        $expect = "Hello                                                                World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //balanced nested tags will work
+        $string = "Hello<--start <--start removed <--start  end--> removed end--> end-->World";
+        $expect = "Hello                                                                World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //out of order tags so no stripping
+        $string = "Hello end--> end--> end--> not removed <--start <--start <--start World";
+        $expect = "Hello end--> end--> end--> not removed <--start <--start <--start World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //some out of order tags so some stripping will happen
+        $string = "Hello end--> end--> end--> not removed <--start removed end--> <--start <--start <--start World";
+        $expect = "Hello end--> end--> end--> not removed                         <--start <--start <--start World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //unbalanced start tags so no stripping
+        $string = "Hello<--start all of this will not be removed end-- World";
+        $expect = "Hello<--start all of this will not be removed end-- World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //unbalanced end tags so no stripping
+        $string = "Hello --start all of this will not be removed end-->World";
+        $expect = "Hello --start all of this will not be removed end-->World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //basic strip with line breaks
+        $string = "Hello\r\n<--start all of this \r\nwill be removed end-->\r\nWorld";
+        $expect = "Hello\r\n                     \r\n                      \r\nWorld";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //basic strip with defined replacement char
+        $string = "Hello<--start all of this will be removed end-->World";
+        $expect = "Hello+++++++++++++++++++++++++++++++++++++++++++World";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag, '+');
+        $this->assertEquals($expect, $actual);
+
+        //basic strip with no replacement char
+        $string = "Hello<--start all of this will be removed end-->World";
+        $expect = "HelloWorld";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag, '');
+        $this->assertEquals($expect, $actual);
+    }
 }

@@ -3,6 +3,8 @@
 namespace arajcany\ToolBox\Utility;
 
 
+use function PHPUnit\Framework\stringContains;
+
 class TextFormatter
 {
     /**
@@ -239,5 +241,68 @@ class TextFormatter
         }
 
         return $string;
+    }
+
+    /**
+     * Strip text between the tags (+ the tags themselves) whilst keeping the char count and line breaks.
+     *
+     * @param string $string
+     * @param string $startTag
+     * @param string $endTag
+     * @param string $replacement
+     * @return string
+     */
+    public static function stripBetweenTags(string $string, string $startTag, string $endTag, string $replacement = ' '): string
+    {
+        if (!str_contains($string, $startTag) || !str_contains($string, $endTag)) {
+            return $string;
+        }
+
+        $countStartTags = substr_count($string, $startTag);
+        $countEndTags = substr_count($string, $endTag);
+
+        if ($countStartTags !== $countEndTags) {
+            return $string;
+        }
+
+        $startTagLength = strlen($startTag);
+        $endTagLength = strlen($endTag);
+
+        $allStartingPositions = self::strpos_all($string, $startTag);
+        $allStartingPositions = array_reverse($allStartingPositions);
+
+        $newString = $string;
+        foreach ($allStartingPositions as $currentOffset) {
+            $startPosition = strpos($newString, $startTag, $currentOffset);
+            if ($startPosition === false) {
+                continue;
+            }
+            $endPosition = strpos($newString, $endTag, $currentOffset) + $endTagLength;
+            if ($endPosition <= $startPosition) {
+                continue;
+            }
+            $inString = substr($newString, $startPosition, $endPosition - $startPosition);
+            $outString = preg_replace("/[^\n\r]/", $replacement, $inString);
+            $newString = str_replace($inString, $outString, $newString);
+        }
+
+        return $newString;
+    }
+
+    /**
+     * @param $haystack
+     * @param $needle
+     * @return array
+     */
+    private static function strpos_all($haystack, $needle): array
+    {
+        $offset = 0;
+        $allPos = array();
+        while (($pos = strpos($haystack, $needle, $offset)) !== FALSE) {
+            $offset = $pos + 1;
+            $allPos[] = $pos;
+        }
+
+        return $allPos;
     }
 }
