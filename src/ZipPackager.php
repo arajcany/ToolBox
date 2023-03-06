@@ -382,7 +382,7 @@ class ZipPackager
     {
         $toReturn = [];
 
-        $dirs = ['/tests/', '/docs/', '/examples/',];
+        $dirs = ['/tests/', '/docs/', '/examples/', '/.github/', '/.vscode/', '/.idea/',];
 
         $filteredOut = [];
 
