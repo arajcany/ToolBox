@@ -235,10 +235,16 @@ class TextFormatterTest extends TestCase
         $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
         $this->assertEquals($expect, $actual);
 
-        //basic strip with line breaks
+        //basic strip with line breaks preserved
         $string = "Hello\r\n<--start all of this \r\nwill be removed end-->\r\nWorld";
-        $expect = "Hello\r\n                     \r\n                      \r\nWorld";
-        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag);
+        $expect = "Hello\r\n+++++++++++++++++++++\r\n++++++++++++++++++++++\r\nWorld";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag, '+');
+        $this->assertEquals($expect, $actual);
+
+        //basic strip with line breaks removed
+        $string = "Hello\r\n<--start all of this \r\nwill be removed end-->\r\nWorld";
+        $expect = "Hello\r\n+++++++++++++++++++++++++++++++++++++++++++++\r\nWorld";
+        $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag, '+', false);
         $this->assertEquals($expect, $actual);
 
         //basic strip with defined replacement char
@@ -251,6 +257,24 @@ class TextFormatterTest extends TestCase
         $string = "Hello<--start all of this will be removed end-->World";
         $expect = "HelloWorld";
         $actual = TextFormatter::stripBetweenTags($string, $startTag, $endTag, '');
+        $this->assertEquals($expect, $actual);
+    }
+
+    public function testFindBetweenTags()
+    {
+        $startTag = '<--start';
+        $endTag = 'end-->';
+
+        //simple tags
+        $string = "Hello<--start{Found_A}end--><--start{Found_B}end--><--start{Found_C}end-->World";
+        $expect = ['{Found_A}', '{Found_B}', '{Found_C}'];
+        $actual = TextFormatter::findBetweenTags($string, $startTag, $endTag);
+        $this->assertEquals($expect, $actual);
+
+        //nested tags
+        $string = "Hello<--start{Found_A<--start{Found_B<--start{Found_C}end-->}end-->}end-->World";
+        $expect = ['{Found_A<--start{Found_B<--start{Found_C}end-->}end-->}', '{Found_B<--start{Found_C}end-->}', '{Found_C}'];
+        $actual = TextFormatter::findBetweenTags($string, $startTag, $endTag);
         $this->assertEquals($expect, $actual);
     }
 }

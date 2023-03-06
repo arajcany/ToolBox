@@ -244,49 +244,102 @@ class TextFormatter
     }
 
     /**
-     * Strip text between the tags (+ the tags themselves) whilst keeping the char count and line breaks.
+     * Strip text between the tags (+ the tags themselves).
+     * Default is to keep the same whitespace - keep char count and preserve line breaks.
+     *
+     * Set $replacement = '' to squash down the text
+     * Set $preserveLineBreaks = false to remove line breaks
+     *
      *
      * @param string $string
      * @param string $startTag
      * @param string $endTag
      * @param string $replacement
+     * @param bool $preserveLineBreaks
      * @return string
      */
-    public static function stripBetweenTags(string $string, string $startTag, string $endTag, string $replacement = ' '): string
+    public static function stripBetweenTags(string $string, string $startTag, string $endTag, string $replacement = ' ', bool $preserveLineBreaks = true): string
+    {
+        $foundStrings = self::findBetweenTags($string, $startTag, $endTag);
+
+        $strippedString = $string;
+        foreach ($foundStrings as $foundString) {
+            $inString = $startTag . $foundString . $endTag;
+            if ($preserveLineBreaks) {
+                $outString = preg_replace("/[^\n\r]/", $replacement, $inString);
+            } else {
+                $outString = str_pad('', strlen($inString), $replacement);
+            }
+            $strippedString = str_replace($inString, $outString, $strippedString);
+        }
+
+        return $strippedString;
+    }
+
+    /**
+     * Find the text between tags.
+     *
+     * Returns an array of found string. The found string will not have the start/end tags.
+     *
+     * Uses an algorithm to find the matching start/end tag (i.e. for nested tags).
+     *
+     * @param string $string
+     * @param string $startTag
+     * @param string $endTag
+     * @return string[]
+     */
+    public static function findBetweenTags(string $string, string $startTag, string $endTag): array
     {
         if (!str_contains($string, $startTag) || !str_contains($string, $endTag)) {
-            return $string;
+            return [];
         }
 
         $countStartTags = substr_count($string, $startTag);
         $countEndTags = substr_count($string, $endTag);
 
         if ($countStartTags !== $countEndTags) {
-            return $string;
+            return [];
         }
 
-        $startTagLength = strlen($startTag);
-        $endTagLength = strlen($endTag);
+        $braceLeft = 'CURLY_BRACE_LEFT';
+        $braceRight = 'CURLY_BRACE_RIGHT';
+        $startTagTemp = '{';
+        $endTagTemp = '}';
+        $string = str_replace($startTagTemp, $braceLeft, $string);
+        $string = str_replace($endTagTemp, $braceRight, $string);
+        $string = str_replace($startTag, $startTagTemp, $string);
+        $string = str_replace($endTag, $endTagTemp, $string);
 
-        $allStartingPositions = self::strpos_all($string, $startTag);
-        $allStartingPositions = array_reverse($allStartingPositions);
+        $allStartingPositions = self::strpos_all($string, $startTagTemp);
+        $allEndingPositions = self::strpos_all($string, $endTagTemp);
 
-        $newString = $string;
-        foreach ($allStartingPositions as $currentOffset) {
-            $startPosition = strpos($newString, $startTag, $currentOffset);
-            if ($startPosition === false) {
-                continue;
+        $foundStrings = [];
+        foreach ($allStartingPositions as $s => $startPosition) {
+            $partialString = substr($string, $startPosition);
+
+            $tagIndicator = 0;
+            foreach ((str_split($partialString)) as $e => $char) {
+                $currentStart = 0; //is always 0 as wer are dealing with the partial string
+                if ($char === $startTagTemp) {
+                    $tagIndicator++;
+                }
+                if ($char === $endTagTemp) {
+                    $currentEnd = $e;
+                    $tagIndicator--;
+                    if ($tagIndicator === 0 && $e !== 0) {
+                        $foundString = substr($partialString, $currentStart + 1, $currentEnd - 1);
+                        $foundString = str_replace($startTagTemp, $startTag, $foundString);
+                        $foundString = str_replace($endTagTemp, $endTag, $foundString);
+                        $foundString = str_replace($braceLeft, $startTagTemp, $foundString);
+                        $foundString = str_replace($braceRight, $endTagTemp, $foundString);
+                        $foundStrings[] = $foundString;
+                        break;
+                    }
+                }
             }
-            $endPosition = strpos($newString, $endTag, $currentOffset) + $endTagLength;
-            if ($endPosition <= $startPosition) {
-                continue;
-            }
-            $inString = substr($newString, $startPosition, $endPosition - $startPosition);
-            $outString = preg_replace("/[^\n\r]/", $replacement, $inString);
-            $newString = str_replace($inString, $outString, $newString);
         }
 
-        return $newString;
+        return $foundStrings;
     }
 
     /**
