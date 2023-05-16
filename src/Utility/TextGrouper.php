@@ -26,28 +26,6 @@ class TextGrouper
             $decrementingRange = range(100, $lowerMatchLimit);
         }
 
-        //polyfill
-        if (!function_exists('array_key_last')) {
-            function array_key_last(array $array): bool|int|string|null
-            {
-                if (!empty($array)) {
-                    return key(array_slice($array, -1, 1, true));
-                }
-                return false;
-            }
-        }
-
-        //polyfill
-        if (!function_exists('array_key_first')) {
-            function array_key_first(array $arr): bool|int|string
-            {
-                foreach ($arr as $key => $unused) {
-                    return $key;
-                }
-                return false;
-            }
-        }
-
         foreach ($decrementingRange as $thresholdPercent) {
             $valuesCompared = [];
             $groups = [];
@@ -114,5 +92,114 @@ class TextGrouper
         }
     }
 
+
+    /**
+     * Faster method to group items by similarity.
+     * Is faster because it pre-groups the items so that the exponential comparisons is avoided.
+     *
+     * @param array $listOfItems
+     * @param int $lowestMatchLimit
+     * @return array
+     */
+    public static function bySimilarityFast(array $listOfItems, int $lowestMatchLimit = 95): array
+    {
+        $postSorted = [];
+        $preGrouped = self::preGroupItems($listOfItems);
+
+        foreach ($preGrouped as $group) {
+            $sorted = self::quickGroup($group, $lowestMatchLimit);
+            $postSorted = array_merge($postSorted, $sorted);
+        }
+
+        //re-sort back into some semblance of their original order
+        $finalSorted = [];
+        $originalKeyPositions = array_keys($listOfItems);
+        foreach ($postSorted as $groupKey => $groupValues) {
+            $firstKey = array_key_first($groupValues);
+            $matchedKey = array_search($firstKey, $originalKeyPositions);
+            $finalSorted[$matchedKey] = $groupValues;
+        }
+        ksort($finalSorted);
+        $finalSorted = array_values($finalSorted);
+
+        return $finalSorted;
+    }
+
+    private static function preGroupItems($listOfItems): array
+    {
+        $lengths = [];
+        foreach ($listOfItems as $item) {
+            $lengths[] = strlen($item);
+        }
+        $averageLength = intval((array_sum($lengths)) / count($lengths));
+
+        //create a string based on the average length
+        $baseString = str_pad("", $averageLength, implode(range('a', 'z')));
+
+        $map = [];
+        foreach ($listOfItems as $itemKey => $itemValue) {
+            similar_text($baseString, $itemValue, $percent);
+            $preGrouper = floor($percent * 1000);
+            $map[$preGrouper][$itemKey] = $itemValue;
+        }
+
+        return $map;
+    }
+
+    private static function quickGroup($listOfItems, $lowestMatchLimit = 95): array
+    {
+        $map = self::createMap($listOfItems, $lowestMatchLimit);
+
+        $grouping = [];
+        $cnt = 0;
+        $matchedKeys = [];
+        foreach ($map as $keyMaster => $matchValues) {
+            $grouping[$cnt][$keyMaster] = $listOfItems[$keyMaster];
+            $matchedKeys[] = $keyMaster;
+            foreach ($matchValues as $keySlave => $percentage) {
+                if ($percentage >= $lowestMatchLimit) {
+                    $grouping[$cnt][$keySlave] = $listOfItems[$keySlave];
+                    $matchedKeys[] = $keySlave;
+                }
+            }
+            $cnt++;
+        }
+        $unmatchedKeys = $listOfItems;
+        foreach ($matchedKeys as $matchedKey) {
+            unset($unmatchedKeys[$matchedKey]);
+        }
+        foreach ($unmatchedKeys as $k => $unmatchedKey) {
+            $grouping[][$k] = $unmatchedKey;
+        }
+
+        return $grouping;
+    }
+
+    private static function createMap($listOfItems, $lowestMatchLimit = 95): array
+    {
+        $map = [];
+
+        while (count($listOfItems) > 0) {
+            $keysToUnset = [];
+            $masterItemKey = array_key_first($listOfItems);
+            $masterItemValue = $listOfItems[$masterItemKey];
+            unset($listOfItems[$masterItemKey]);
+            foreach ($listOfItems as $itemKey => $itemValue) {
+                similar_text($masterItemValue, $itemValue, $percent);
+                $map[$masterItemKey][$itemKey] = $percent;
+
+                if ($percent >= $lowestMatchLimit) {
+                    $keysToUnset[] = $itemKey;
+                }
+            }
+
+            foreach ($keysToUnset as $keyToUnset) {
+                unset($listOfItems[$keyToUnset]);
+            }
+
+        }
+
+        return $map;
+    }
 
 }
