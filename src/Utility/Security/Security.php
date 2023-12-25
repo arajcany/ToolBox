@@ -44,7 +44,7 @@ class Security extends CakeSecurity
      * @param $input
      * @return bool
      */
-    function isValidUuidOrSha1($input) {
+    public static function isValidUuidOrSha1($input) {
         //is uid format - limit 4 repeating characters
         if (preg_match('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/', $input)) {
             return true;
