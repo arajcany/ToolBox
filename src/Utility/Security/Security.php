@@ -39,6 +39,27 @@ class Security extends CakeSecurity
     }
 
     /**
+     * Check if the passed in string meets criteria of a uuid or sha1 checkusum.
+     *
+     * @param $input
+     * @return bool
+     */
+    function isValidUuidOrSha1($input) {
+        //is uid format - limit 4 repeating characters
+        if (preg_match('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/', $input)) {
+            return true;
+        }
+
+        //is SHA-1 checksum - limit 4 repeating characters
+        if (preg_match('/^[0-9a-fA-F]{5,40}$/', $input) && !preg_match('/(.)\1{4,}/', $input)) {
+            // Check for proper SHA-1 checksum length and no more than 4 repeating characters
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Generate string of letters and numbers that can be used as a "Personalised URL" (PURL).
      * PURLs are a slightly better looking than guids for use as unique URLs.
      * They come at the cost of uniqueness. Chance of collisions of you reduce the length.
