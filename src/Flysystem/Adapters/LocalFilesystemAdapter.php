@@ -46,6 +46,7 @@ class LocalFilesystemAdapter extends \League\Flysystem\Local\LocalFilesystemAdap
      * @var MimeTypeDetector
      */
     private $mimeTypeDetector;
+    private int $writeFlags;
 
     public function __construct(
         string              $location,
