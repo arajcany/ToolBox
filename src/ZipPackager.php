@@ -26,6 +26,7 @@ class ZipPackager
     private bool $verbose = false;
     private bool $debugResults = false; //send output to JSON file in tmp directory
     private array $cache = [];
+    private array $log = [];
 
     /**
      * Constructor
@@ -68,15 +69,22 @@ class ZipPackager
         $this->progressiveSaving = $progressiveSaving;
     }
 
-    private function debugResults($results, string $filenameAppend = null): bool|int
+    /**
+     * Writes the given input to the TMP directory if it exists.
+     *
+     * @param $results
+     * @param string|null $filenameAppend
+     * @return void
+     */
+    private function debugResults($results, string $filenameAppend = null): void
     {
         if (!$this->debugResults) {
-            return false;
+            return;
         }
 
         $tmpDir = __DIR__ . "/../tmp/";
         if (!is_dir($tmpDir)) {
-            return false;
+            return;
         }
 
         $filename = date("Ymd-His-") . substr(explode(".", microtime(true))[1], 0, 3);
@@ -87,10 +95,17 @@ class ZipPackager
         }
         $filename = $tmpDir . $filename;
         $results = json_encode($results, JSON_PRETTY_PRINT);
-        return file_put_contents($filename, $results);
+        file_put_contents($filename, $results);
     }
 
-    private function applyReplacements($message, $replacers)
+    /**
+     * String replacer for messages.
+     *
+     * @param string $message
+     * @param array $replacers
+     * @return string
+     */
+    private function applyReplacements(string $message, array $replacers = []): string
     {
         if (is_string($replacers) || is_int($replacers)) {
             $replacers = [$replacers];
@@ -102,58 +117,114 @@ class ZipPackager
                 $message = str_replace($search, $replacement, $message);
             }
         }
+
         return $message;
     }
 
-    private function out($message, ...$replacers)
+    /**
+     * IO message to console
+     *
+     * @param $message
+     * @param ...$replacers
+     * @return void
+     */
+    private function out($message, ...$replacers): void
     {
         if (!$this->verbose || !$this->io) {
             return;
         }
         $message = $this->applyReplacements($message, $replacers);
         $this->io->out($message);
+        $this->log[] = date("Y-m-d H:i:s") . " [INFO] $message";
     }
 
-    private function info($message, ...$replacers)
+    /**
+     * IO message to console
+     *
+     * @param $message
+     * @param ...$replacers
+     * @return void
+     */
+    private function info($message, ...$replacers): void
     {
         if (!$this->verbose || !$this->io) {
             return;
         }
         $message = $this->applyReplacements($message, $replacers);
         $this->io->lightBlue($message);
+        $this->log[] = date("Y-m-d H:i:s") . " [INFO] $message";
     }
 
-    private function success($message, ...$replacers)
+    /**
+     * IO message to console
+     *
+     * @param $message
+     * @param ...$replacers
+     * @return void
+     */
+    private function success($message, ...$replacers): void
     {
         if (!$this->verbose || !$this->io) {
             return;
         }
         $message = $this->applyReplacements($message, $replacers);
         $this->io->green($message);
+        $this->log[] = date("Y-m-d H:i:s") . " [SUCCESS] $message";
     }
 
-    private function warning($message, ...$replacers)
+    /**
+     * IO message to console
+     *
+     * @param $message
+     * @param ...$replacers
+     * @return void
+     */
+    private function warning($message, ...$replacers): void
     {
         if (!$this->verbose || !$this->io) {
             return;
         }
         $message = $this->applyReplacements($message, $replacers);
         $this->io->lightYellow($message);
+        $this->log[] = date("Y-m-d H:i:s") . " [WARNING] $message";
     }
 
-    private function error($message, ...$replacers)
+    /**
+     * IO message to console
+     *
+     * @param $message
+     * @param ...$replacers
+     * @return void
+     */
+    private function error($message, ...$replacers): void
     {
         if (!$this->verbose || !$this->io) {
             return;
         }
         $message = $this->applyReplacements($message, $replacers);
         $this->io->lightRed($message);
+        $this->log[] = date("Y-m-d H:i:s") . " [ERROR] $message";
     }
 
-    private function progressBar($current, $total, $label = null)
+    /**
+     * IO message to console
+     *
+     * @param $current
+     * @param $total
+     * @param string|null $message
+     * @param array $replacers
+     * @return void
+     */
+    private function progressBar($current, $total, string $message = null, array $replacers = []): void
     {
         if (!$this->verbose || !$this->io) {
             return;
+        }
+
+        if (!empty($message)) {
+            $label = $this->applyReplacements($message, $replacers);
+        } else {
+            $label = null;
         }
 
         $factor = ($total / 100);
@@ -177,9 +248,10 @@ class ZipPackager
      * Wrapper function
      *
      * @param string $localFsoRootPath
+     * @param bool $recursive
      * @return array
      */
-    public function rawFileList(string $localFsoRootPath, $recursive = true): array
+    public function rawFileList(string $localFsoRootPath, bool $recursive = true): array
     {
         return $this->rawList($localFsoRootPath, 'file', $recursive);
     }
@@ -188,9 +260,10 @@ class ZipPackager
      * Wrapper function
      *
      * @param string $localFsoRootPath
+     * @param bool $recursive
      * @return array
      */
-    public function rawFolderList(string $localFsoRootPath, $recursive = true): array
+    public function rawFolderList(string $localFsoRootPath, bool $recursive = true): array
     {
         return $this->rawList($localFsoRootPath, 'folder', $recursive);
     }
@@ -199,9 +272,10 @@ class ZipPackager
      * Wrapper function
      *
      * @param string $localFsoRootPath
+     * @param bool $recursive
      * @return array multidimensional array ['folders'=>[], 'files'=>[]]
      */
-    public function rawFileAndFolderList(string $localFsoRootPath, $recursive = true): array
+    public function rawFileAndFolderList(string $localFsoRootPath, bool $recursive = true): array
     {
         return $this->rawList($localFsoRootPath, 'both', $recursive);
     }
@@ -215,9 +289,10 @@ class ZipPackager
      *
      * @param string $localFsoRootPath
      * @param string $mode
+     * @param bool $recursive
      * @return array
      */
-    private function rawList(string $localFsoRootPath, string $mode, $recursive = true): array
+    private function rawList(string $localFsoRootPath, string $mode, bool $recursive = true): array
     {
         /**
          * @var FileAttributes|DirectoryAttributes $content
@@ -513,8 +588,7 @@ class ZipPackager
                         if ($result) {
                             $counter++;
                             if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                                $message = $this->applyReplacements("Zipped {0} of {1} files.", [$counter, $totalCount]);
-                                $this->progressBar($counter, $totalCount, $message);
+                                $this->progressBar($counter, $totalCount, "Zipped {0} of {1} files.", [$counter, $totalCount]);
                             }
 
                             if ($this->progressiveSaving) {
@@ -611,6 +685,12 @@ class ZipPackager
      */
     public function extractZip(string $zipLocation, string $localFsoRootPath, bool $eliminateRoot = false, $toExtract = null): array
     {
+        $report = [
+            'status' => null,
+            'timer' => 0,
+            'counter' => 0,
+        ];
+
         $timeStart = microtime(true);
 
         $localFsoRootPath = TextFormatter::makeDirectoryTrailingBackwardSlash($localFsoRootPath);
@@ -685,9 +765,9 @@ class ZipPackager
             $counter = 0;
             foreach ($fileEntries as $fileEntry) {
                 $counter++;
+                $report['counter'] = $counter;
                 if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                    $message = $this->applyReplacements("Extracting {0} of {1} files.", [$counter, $totalCount]);
-                    $this->progressBar($counter, $totalCount, $message);
+                    $this->progressBar($counter, $totalCount, "Extracting {0} of {1} files.", [$counter, $totalCount]);
                 }
 
                 $fp = $za->getStream($fileEntry['name']);
@@ -725,8 +805,8 @@ class ZipPackager
                 foreach ($massExtractionGroups as $groupOfNames) {
                     $groupCount = $groupCount + count($groupOfNames);
                     $counter++;
-                    $message = $this->applyReplacements("Extracting {0} of {1} files.", [$groupCount, $totalCount]);
-                    $this->progressBar($counter, $totalGroups, $message);
+                    $report['counter'] = $counter;
+                    $this->progressBar($counter, $totalGroups, "Extracting {0} of {1} files.", [$groupCount, $totalCount]);
                     $za->extractTo($localFsoRootPath, $groupOfNames);
                 }
             }
@@ -739,12 +819,12 @@ class ZipPackager
         } else {
             $isSuccess = false;
         }
-        $report = [
-            'status' => $isSuccess,
-            'timer' => 0,
-        ];
+        $report['status'] = $isSuccess;
+
         $timerEnd = microtime(true);
         $report['timer'] = $timerEnd - $timeStart;
+
+        $report['log'] = $this->log;
 
         $this->debugResults($report, 'extractZip');
 
@@ -940,8 +1020,7 @@ class ZipPackager
 
             $counter++;
             if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                $message = $this->applyReplacements("Analysed {0} of {1} files in FSO.", [$counter, $totalCount]);
-                $this->progressBar($counter, $totalCount, $message);
+                $this->progressBar($counter, $totalCount, "Analysed {0} of {1} files in FSO.", [$counter, $totalCount]);
             }
         }
 
@@ -983,7 +1062,7 @@ class ZipPackager
             $entry['name_normalised'] = $this->normalisePath($entry['name'], false);
 
             if (TextFormatter::endsWith($entry['name_normalised'], "/")) {
-                //this is a directory or sub-directory so add the first part as the root folder
+                //this is a directory or subdirectory so add the first part as the root folder
                 $roots[] = explode("/", $entry['name_normalised'])[0];
                 $entry['type'] = 'folder';
                 $entry['path_info_file'] = '';
@@ -1009,8 +1088,7 @@ class ZipPackager
 
             $counter++;
             if (($counter % $everyNFiles === 0) || $counter === $totalCount) {
-                $message = $this->applyReplacements("Analysed {0} of {1} entries in Zip.", [$counter, $totalCount]);
-                $this->progressBar($counter, $totalCount, $message);
+                $this->progressBar($counter, $totalCount, "Analysed {0} of {1} entries in Zip.", [$counter, $totalCount]);
             }
         }
 
@@ -1038,7 +1116,7 @@ class ZipPackager
      * @param $context
      * @return bool
      */
-    private function mkdir(string $directory, int $permissions = 0777, bool $recursive = false, $context = null)
+    private function mkdir(string $directory, int $permissions = 0777, bool $recursive = false, $context = null): bool
     {
         set_error_handler(function () {
             //do nothing
