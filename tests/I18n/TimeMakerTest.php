@@ -2,10 +2,9 @@
 
 namespace I18n;
 
-use PHPUnit\Framework\TestCase;
 use arajcany\ToolBox\I18n\TimeMaker;
-use \Cake\I18n\Time;
-use \Cake\I18n\FrozenTime;
+use Cake\I18n\DateTime;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Class TimeMakerTest
@@ -44,7 +43,7 @@ class TimeMakerTest extends TestCase
      */
     public function testExistingDateTimeIsNotModified()
     {
-        $cakeFrozenTime = new FrozenTime($this->now, "UTC");
+        $cakeFrozenTime = new DateTime($this->now, "UTC");
         $timeMakerFrozenTime = TimeMaker::makeFrozenTimeFromUnknown($cakeFrozenTime, "Australia/Sydney");
 
         $this->assertEquals($cakeFrozenTime, $timeMakerFrozenTime);

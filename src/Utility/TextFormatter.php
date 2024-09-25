@@ -3,8 +3,6 @@
 namespace arajcany\ToolBox\Utility;
 
 
-use function PHPUnit\Framework\stringContains;
-
 class TextFormatter
 {
     /**

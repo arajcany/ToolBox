@@ -2,9 +2,9 @@
 
 namespace Utility\Security;
 
-use PHPUnit\Framework\TestCase;
 use arajcany\ToolBox\Utility\Security\Security;
 use Cake\Core\Configure;
+use PHPUnit\Framework\TestCase;
 
 class SecurityTest extends TestCase
 {

@@ -13,11 +13,11 @@
     }
   ],
   "require": {
-    "php": ">=8.0",
+    "php": ">=8.2",
     "ext-json": "*",
     "ext-zip": "*",
-    "cakephp/utility": ">=4.5",
-    "cakephp/i18n": ">=4.5",
+    "cakephp/utility": ">=5.0",
+    "cakephp/i18n": ">=5.0",
     "league/flysystem": "^3.0",
     "league/climate": "^3.8"
   },

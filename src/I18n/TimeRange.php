@@ -4,7 +4,7 @@
 namespace arajcany\ToolBox\I18n;
 
 
-use Cake\I18n\FrozenTime;
+use Cake\I18n\DateTime;
 
 /**
  * Class TimeRange
@@ -24,9 +24,9 @@ class TimeRange
      * Standardises the String into known keywords for the conversion process
      *
      * @param string $inputString
-     * @return mixed|string
+     * @return string
      */
-    public function cleanupString($inputString = '')
+    public function cleanupString($inputString = ''): string
     {
         //lower case
         $outputString = strtolower($inputString);
@@ -67,16 +67,6 @@ class TimeRange
         }
 
         return $outputString;
-    }
-
-
-    public function write()
-    {
-        $expression = 'next friday';
-
-        $datetime = new FrozenTime($expression, 'UTC');
-        print_r($datetime);
-
     }
 
 }

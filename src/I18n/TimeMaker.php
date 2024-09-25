@@ -2,7 +2,7 @@
 
 namespace arajcany\ToolBox\I18n;
 
-use Cake\I18n\FrozenTime;
+use Cake\I18n\DateTime;
 use Throwable;
 
 class TimeMaker
@@ -11,27 +11,12 @@ class TimeMaker
     /**
      * Wrapper function
      *
-     * @deprecated use makeFrozenTimeFromUnknown() as mutable is no longer supported
-     *
      * @param $unknown
      * @param string $inputTimezone
      * @param string $outputTimezone
-     * @return bool|FrozenTime
+     * @return DateTime|bool|null
      */
-    public static function makeTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc')
-    {
-        return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone);
-    }
-
-    /**
-     * Wrapper function
-     *
-     * @param $unknown
-     * @param string $inputTimezone
-     * @param string $outputTimezone
-     * @return bool|FrozenTime
-     */
-    public static function makeFrozenTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc')
+    public static function makeFrozenTimeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc'): DateTime|bool|null
     {
         return self::makeFromUnknown($unknown, $inputTimezone, $outputTimezone);
     }
@@ -43,13 +28,9 @@ class TimeMaker
      * @param string $inputTimezone
      * @param string $outputTimezone
      * @param bool|null $failType Return this on failure to make a DateTime object
-     * @return bool|null|FrozenTime
-     *
-     * $unknown examples
-     * String - "first day of january 2006"
-     * Array - ['year' => '2018','month' => '7','day' => '25','hour' => '15','minute' => '6','second' => '30']
+     * @return DateTime|bool|null
      */
-    private static function makeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc', bool $failType = false)
+    private static function makeFromUnknown($unknown, string $inputTimezone = 'utc', string $outputTimezone = 'utc', bool $failType = false): DateTime|bool|null
     {
         if (in_array($unknown, [true, false, null], true)) {
             return $failType;
@@ -57,7 +38,7 @@ class TimeMaker
 
         //see if the basics will work
         try {
-            $timeObj = new FrozenTime($unknown, $inputTimezone);
+            $timeObj = new DateTime($unknown, $inputTimezone);
             return $timeObj->setTimezone($outputTimezone);
         } catch (Throwable $exception) {
 
@@ -86,7 +67,7 @@ class TimeMaker
             }
 
             try {
-                $timeObj = new FrozenTime($unknownStructuredString, $inputTimezone);
+                $timeObj = new DateTime($unknownStructuredString, $inputTimezone);
                 return $timeObj->setTimezone($outputTimezone);
             } catch (Throwable $exception) {
 

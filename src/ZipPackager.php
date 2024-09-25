@@ -3,13 +3,13 @@
 namespace arajcany\ToolBox;
 
 
+use arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter;
 use arajcany\ToolBox\Utility\TextFormatter;
 use League\CLImate\CLImate;
 use League\CLImate\TerminalObject\Dynamic\Progress;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\Filesystem;
-use arajcany\ToolBox\Flysystem\Adapters\LocalFilesystemAdapter;
 use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use ZipArchive;
 
