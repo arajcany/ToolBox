@@ -39,7 +39,7 @@ class Security extends CakeSecurity
     }
 
     /**
-     * Check if the passed in string meets criteria of a uuid or sha1 checkusum.
+     * Check if the passed in string meets criteria of a uuid or sha1 checksum.
      *
      * @param $input
      * @return bool
