@@ -16,7 +16,6 @@ namespace arajcany\ToolBox\Utility\Feedback;
  */
 trait ReturnAlerts
 {
-    private string $classOwner = '';
     private array $successAlerts = [];
     private array $dangerAlerts = [];
     private array $warningAlerts = [];
@@ -137,36 +136,44 @@ trait ReturnAlerts
         $compiled = [];
 
         foreach ($this->successAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
+            $parts = explode(".", $timestamp, 2);
+            $ts = isset($parts[0]) ? intval($parts[0]) : 0;
+            $ms = $parts[1] ?? '000000';
             $compiled[$timestamp] = [
-                'created' => date("Y-m-d H:i:s", intval($timestamp)) . "." . $ms,
+                'created' => date("Y-m-d H:i:s", $ts) . "." . $ms,
                 $levelFieldName => 'success',
                 $messageFieldName => $message,
             ];
         }
 
         foreach ($this->dangerAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
+            $parts = explode(".", $timestamp, 2);
+            $ts = isset($parts[0]) ? intval($parts[0]) : 0;
+            $ms = $parts[1] ?? '000000';
             $compiled[$timestamp] = [
-                'created' => date("Y-m-d H:i:s", intval($timestamp)) . "." . $ms,
+                'created' => date("Y-m-d H:i:s", $ts) . "." . $ms,
                 $levelFieldName => 'danger',
                 $messageFieldName => $message,
             ];
         }
 
         foreach ($this->warningAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
+            $parts = explode(".", $timestamp, 2);
+            $ts = isset($parts[0]) ? intval($parts[0]) : 0;
+            $ms = $parts[1] ?? '000000';
             $compiled[$timestamp] = [
-                'created' => date("Y-m-d H:i:s", intval($timestamp)) . "." . $ms,
+                'created' => date("Y-m-d H:i:s", $ts) . "." . $ms,
                 $levelFieldName => 'warning',
                 $messageFieldName => $message,
             ];
         }
 
         foreach ($this->infoAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
+            $parts = explode(".", $timestamp, 2);
+            $ts = isset($parts[0]) ? intval($parts[0]) : 0;
+            $ms = $parts[1] ?? '000000';
             $compiled[$timestamp] = [
-                'created' => date("Y-m-d H:i:s", intval($timestamp)) . "." . $ms,
+                'created' => date("Y-m-d H:i:s", $ts) . "." . $ms,
                 $levelFieldName => 'info',
                 $messageFieldName => $message,
             ];
@@ -186,24 +193,32 @@ trait ReturnAlerts
     {
         $compiled = [];
 
+        $formatLogLine = function ($timestamp, $message, $level) {
+            $parts = explode(".", $timestamp, 2);
+            $ts = isset($parts[0]) ? intval($parts[0]) : 0;
+            $ms = $parts[1] ?? '000000';
+
+            return [$timestamp, date("Y-m-d H:i:s", $ts) . ".{$ms} " . strtoupper($level) . ": " . $message];
+        };
+
         foreach ($this->successAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
-            $compiled[$timestamp] = date("Y-m-d H:i:s", intval($timestamp)) . ".{$ms} SUCCESS: {$message}";
+            [$ts, $line] = $formatLogLine($timestamp, $message, 'success');
+            $compiled[$ts] = $line;
         }
 
         foreach ($this->dangerAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
-            $compiled[$timestamp] = date("Y-m-d H:i:s", intval($timestamp)) . ".{$ms} DANGER:  {$message}";
+            [$ts, $line] = $formatLogLine($timestamp, $message, 'danger');
+            $compiled[$ts] = $line;
         }
 
         foreach ($this->warningAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
-            $compiled[$timestamp] = date("Y-m-d H:i:s", intval($timestamp)) . ".{$ms} WARNING: {$message}";
+            [$ts, $line] = $formatLogLine($timestamp, $message, 'warning');
+            $compiled[$ts] = $line;
         }
 
         foreach ($this->infoAlerts as $timestamp => $message) {
-            $ms = explode(".", $timestamp)[1];
-            $compiled[$timestamp] = date("Y-m-d H:i:s", intval($timestamp)) . ".{$ms} INFO:    {$message}";
+            [$ts, $line] = $formatLogLine($timestamp, $message, 'info');
+            $compiled[$ts] = $line;
         }
 
         ksort($compiled);
@@ -349,22 +364,42 @@ trait ReturnAlerts
         }
 
         foreach ($message as $item) {
-            $level = $this->extractLevel($item);
+            $level = $this->mapToBootstrapLevel($this->extractLevel($item));
 
-            if ($level === 'error') {
-                $this->addDangerAlerts($item);
-            } elseif ($level === 'warning') {
-                $this->addWarningAlerts(__($item));
-            } elseif ($level === 'danger') {
-                $this->addDangerAlerts($item);
-            } elseif ($level === 'success') {
-                $this->addSuccessAlerts($item);
-            } else {
-                $this->addInfoAlerts(__($item));
+            switch ($level) {
+                case 'danger':
+                    $this->addDangerAlerts($item);
+                    break;
+                case 'warning':
+                    $this->addWarningAlerts($item);
+                    break;
+                case 'success':
+                    $this->addSuccessAlerts($item);
+                    break;
+                case 'info':
+                default:
+                    $this->addInfoAlerts($item);
+                    break;
             }
         }
 
         return $this->getAllAlerts();
+    }
+
+    /**
+     * Map PSR-3 or descriptive level to Bootstrap alert level
+     *
+     * @param string $level
+     * @return string
+     */
+    private function mapToBootstrapLevel(string $level): string
+    {
+        return match ($level) {
+            'emergency', 'alert', 'critical', 'error', 'danger' => 'danger',
+            'warning' => 'warning',
+            'success' => 'success',
+            default => 'info' //'notice', 'info', 'debug'
+        };
     }
 
     /**
@@ -382,7 +417,10 @@ trait ReturnAlerts
         }
 
         foreach ($messages as $message) {
-            $microTime = $this->getMicrotime();
+            do {
+                $microTime = $this->getMicrotime('.');
+            } while (isset($this->$type[$microTime])); // retry until unique key found
+
             $this->$type[$microTime] = $message;
         }
 
@@ -390,27 +428,35 @@ trait ReturnAlerts
     }
 
     /**
-     * Extract the potential error level based on the contents of the string
+     * Extract the potential PSR-3 log level based on the contents of the string
      *
      * @param string $string
-     * @return string
+     * @return string One of: emergency, alert, critical, error, warning, notice, info, debug, success
      */
     private function extractLevel(string $string): string
     {
         $string = strtolower($string);
 
-        if (str_contains($string, 'warning')) {
-            $level = 'warning';
-        } else if (str_contains($string, 'success')) {
-            $level = 'success';
-        } else if (str_contains($string, 'danger')) {
-            $level = 'danger';
-        } else if (str_contains($string, 'info')) {
-            $level = 'info';
-        } else {
-            $level = 'info';
+        if (str_contains($string, 'emergency')) {
+            return 'emergency';
+        } elseif (str_contains($string, 'alert')) {
+            return 'alert';
+        } elseif (str_contains($string, 'critical')) {
+            return 'critical';
+        } elseif (str_contains($string, 'error')) {
+            return 'error';
+        } elseif (str_contains($string, 'warning')) {
+            return 'warning';
+        } elseif (str_contains($string, 'notice')) {
+            return 'notice';
+        } elseif (str_contains($string, 'debug')) {
+            return 'debug';
+        } elseif (str_contains($string, 'info')) {
+            return 'info';
+        }elseif (str_contains($string, 'success')) {
+            return 'success'; //not a PSR-3 log level but is used by Bootstrap
         }
 
-        return $level;
+        return 'info';
     }
 }
