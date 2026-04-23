@@ -50,10 +50,10 @@ class LocalFilesystemAdapter extends \League\Flysystem\Local\LocalFilesystemAdap
 
     public function __construct(
         string              $location,
-        VisibilityConverter $visibility = null,
-        int                 $writeFlags = LOCK_EX,
-        int                 $linkHandling = self::DISALLOW_LINKS,
-        MimeTypeDetector    $mimeTypeDetector = null
+        ?VisibilityConverter $visibility = null,
+        int                  $writeFlags = LOCK_EX,
+        int                  $linkHandling = self::DISALLOW_LINKS,
+        ?MimeTypeDetector    $mimeTypeDetector = null
     )
     {
         parent::__construct($location, $visibility, $writeFlags, $linkHandling, $mimeTypeDetector);
