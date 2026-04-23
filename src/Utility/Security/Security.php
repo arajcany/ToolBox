@@ -106,7 +106,7 @@ class Security extends CakeSecurity
 
         $result = @base64_decode($string);
 
-        if ($result) {
+        if ($result !== false) {
             $result = parent::decrypt($result, $key, $hmacSalt);
             if ($result == null) {
                 $result = '';
@@ -173,7 +173,7 @@ class Security extends CakeSecurity
      * @return void
      * @throws InvalidArgumentException When key length is null
      */
-    protected static function _validateKey(string $key, string $method)
+    protected static function _validateKey(?string $key, string $method)
     {
         if ($key === null) {
             throw new InvalidArgumentException(

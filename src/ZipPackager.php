@@ -901,7 +901,7 @@ class ZipPackager
         //--------------changed----------------------------
         foreach ($zipMap as $itemName => $itemStat) {
             if (isset($fsoMap[$itemName])) {
-                if ($itemStat['crc'] !== $fsoMap[$itemName]) {
+                if ((string)$itemStat['crc'] !== (string)$fsoMap[$itemName]) {
                     $report['fsoChanged'][] = $localFsoRootPath . $itemName;
                     $report['zipChanged'][] = $itemStat['name'];
                 }
@@ -994,7 +994,7 @@ class ZipPackager
             }
 
             if ($options['crc32']) {
-                $stats[$counter]['crc32'] = crc32($contents);
+                $stats[$counter]['crc32'] = sprintf('%u', crc32($contents));
             }
 
             if ($options['mime']) {
@@ -1003,7 +1003,7 @@ class ZipPackager
             }
 
             if ($options['size']) {
-                if ($contents) {
+                if ($contents !== false) {
                     $stats[$counter]['size'] = strlen($contents);
                 } else {
                     $stats[$counter]['size'] = filesize($fullPath);
@@ -1011,7 +1011,7 @@ class ZipPackager
             }
 
             if ($options['contents']) {
-                if ($contents) {
+                if ($contents !== false) {
                     $stats[$counter]['contents'] = $contents;
                 } else {
                     $stats[$counter]['contents'] = null;
