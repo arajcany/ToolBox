@@ -106,7 +106,7 @@ class Security extends CakeSecurity
 
         $result = @base64_decode($string);
 
-        if ($result !== false) {
+        if ($result !== false && $result !== '') {
             $result = parent::decrypt($result, $key, $hmacSalt);
             if ($result == null) {
                 $result = '';
